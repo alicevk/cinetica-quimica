@@ -28,18 +28,18 @@ animation.range = L
 
 # Caixa:
 
-boxbottom = curve(color=azul, radius=espessuraCaixa)
-boxbottom.append([vector(-d,-d,-d), vector(-d,-d,d), vector(d,-d,d), vector(d,-d,-d), vector(-d,-d,-d)])
-boxtop = curve(color=azul, radius=espessuraCaixa)
-boxtop.append([vector(-d,d,-d), vector(-d,d,d), vector(d,d,d), vector(d,d,-d), vector(-d,d,-d)])
-vert1 = curve(color=azul, radius=espessuraCaixa)
-vert2 = curve(color=azul, radius=espessuraCaixa)
-vert3 = curve(color=azul, radius=espessuraCaixa)
-vert4 = curve(color=azul, radius=espessuraCaixa)
-vert1.append([vector(-d,-d,-d), vector(-d,d,-d)])
-vert2.append([vector(-d,-d,d), vector(-d,d,d)])
-vert3.append([vector(d,-d,d), vector(d,d,d)])
-vert4.append([vector(d,-d,-d), vector(d,d,-d)])
+caixaBot = curve(color=azul, radius=espessuraCaixa)
+caixaBot.append([vector(-d,-d,-d), vector(-d,-d,d), vector(d,-d,d), vector(d,-d,-d), vector(-d,-d,-d)])
+caixaTop = curve(color=azul, radius=espessuraCaixa)
+caixaTop.append([vector(-d,d,-d), vector(-d,d,d), vector(d,d,d), vector(d,d,-d), vector(-d,d,-d)])
+aresta1 = curve(color=azul, radius=espessuraCaixa)
+aresta1.append([vector(-d,-d,d), vector(-d,d,d)])
+aresta2 = curve(color=azul, radius=espessuraCaixa)
+aresta2.append([vector(-d,-d,-d), vector(-d,d,-d)])
+aresta3 = curve(color=azul, radius=espessuraCaixa)
+aresta3.append([vector(d,-d,-d), vector(d,d,-d)])
+aresta4 = curve(color=azul, radius=espessuraCaixa)
+aresta4.append([vector(d,-d,d), vector(d,d,d)])
 
 particulas = []
 posicoes = []
@@ -61,9 +61,10 @@ while True:
     # Update
     for num in range(numParticulas): particulas[num].pos = posicoes[num] = posicoes[num] + (velocidades[num]/massa)*dt
     
-    # Colisões (parede lado L)
+    # Colisões (parede imaginária lado L)
     for i in range(numParticulas):
         loc = posicoes[i]
+        
         if abs(loc.x) > L/2:
             if loc.x < 0: velocidades[i].x =  abs(velocidades[i].x)
             else: velocidades[i].x =  -abs(velocidades[i].x)
