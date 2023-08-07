@@ -6,13 +6,16 @@ import random
 # Definindo uma classe para cada partícula:
 
 class Particula:
-    def __init__(self, x, y, z, vx, vy, vz):
+    def __init__(self, r, vr):
+        x, y, z = r
+        vx, vy, vz = vr
         self.pos = vector(x, y, z)
         self.vel = vector(vx, vy, vz)
         
 # Parâmetros iniciais:
 
-win = 1000
+janelaW = 1900
+janelaH = 960
 L = 10
 numParticulas = 10
 dt = 1e-3
@@ -23,7 +26,7 @@ espessuraCaixa = 0.05
 azul = color.blue
 vermelho = color.red
 
-animation = canvas( width=win, height=win)
+animation = canvas( width=janelaW, height=janelaH)
 animation.range = L
 
 # Caixa:
@@ -48,7 +51,7 @@ velocidades = []
 # Criando partículas:
 
 for num in range(numParticulas):
-    particula = Particula(random.randint(0,1), random.randint(0,1),  random.randint(0,1),  random.randint(0,100),  random.randint(0,100),  random.randint(0,100))
+    particula = Particula([random.random() for i in range(3)], [random.randint(0,100) for i in range(3)])
     particulas.append(sphere(pos = particula.pos, radius = raio, color = vermelho))
     posicoes.append(particula.pos)
     velocidades.append(particula.vel)
@@ -66,13 +69,10 @@ while True:
         loc = posicoes[i]
         
         if abs(loc.x) > L/2:
-            if loc.x < 0: velocidades[i].x =  abs(velocidades[i].x)
-            else: velocidades[i].x =  -abs(velocidades[i].x)
+            velocidades[i].x = -velocidades[i].x
         
         if abs(loc.y) > L/2:
-            if loc.y < 0: velocidades[i].y = abs(velocidades[i].y)
-            else: velocidades[i].y =  -abs(velocidades[i].y)
+            velocidades[i].y = -velocidades[i].y
             
         if abs(loc.z) > L/2:
-            if loc.z < 0: velocidades[i].z = abs(velocidades[i].z)
-            else: velocidades[i].z =  -abs(velocidades[i].z)
+            velocidades[i].z = -velocidades[i].z
