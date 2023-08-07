@@ -2,6 +2,17 @@
 
 from vpython import *
 import random
+import itertools
+
+# Função
+
+def calcular_distancia(r1,r2):
+    x1 = r1.x
+    x2 = r2.x
+    y1 = r1.y
+    y2 = r2.y
+    distancia = sqrt((x2 - x1)**2 + (y2 - y1)**2)
+    return distancia
 
 # Definindo uma classe para cada partícula:
 
@@ -41,18 +52,19 @@ velocidades = []
 # Criando partículas:
 
 for num in range(numParticulas):
-    particula = Particula([random.random() for i in range(2)], [random.randint(0,100) for i in range(2)], 0.5)
+    particula = Particula([random.randint(-L/2,L/2) for i in range(2)], [random.randint(10,20) for i in range(2)], 0.5)
     particulas.append(sphere(pos = particula.pos, radius = particula.raio, color = vermelho))
     posicoes.append(particula.pos)
     velocidades.append(particula.vel)
 
 # Animação:
- 
-while True:
+
+colisao = False
+while not colisao:
     rate(300)
     
     # Update
-    for num in range(numParticulas): particulas[num].pos = posicoes[num] = posicoes[num] + (velocidades[num]/massa)*dt
+    for num in range(numParticulas): particulas[num].pos = posicoes[num] = posicoes[num] + velocidades[num]*dt
     
     # Colisões (parede imaginária lado L)
     for i in range(numParticulas):
@@ -63,3 +75,9 @@ while True:
         
         if abs(loc.y) > L/2:
             velocidades[i].y = -velocidades[i].y
+
+    # Colisão (entre as partículas)
+    for particula1, particula2 in itertools.combinations(particulas,2):
+        if (particula1 != particula2) and (calcular_distancia(particula1.pos, particula2.pos) <= 1):
+            colisao = True
+            print(f'Houve uma colisão!!! :)')
