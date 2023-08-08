@@ -1,12 +1,22 @@
-# Importações:
+# -------------------- Importações:
 
 from vpython import *
 import random
 import itertools
 
-# Função
+# -------------------- Funções:
 
 def calcular_distancia(r1,r2):
+    '''
+    Calcula a distância euclidiana tridimensional entre os vetores posição r1 e r2.
+
+    Args:
+        r1 (vpython vector): vetor posição (x1, y1, z1) da partícula 1
+        r2 (vpython vector): vetor posição (x2, y2, z2) da partícula 2
+
+    Returns:
+        distancia (float): distância euclidiana entre os vetores r1 e r2
+    '''
     x1 = r1.x
     x2 = r2.x
     y1 = r1.y
@@ -16,9 +26,24 @@ def calcular_distancia(r1,r2):
     distancia = sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z1 - z2)**2)
     return distancia
 
-# Definindo uma classe para cada partícula:
+def colisao(particula1, particula2):
+    '''
+    Calcula os vetores resultantes de cada partícula após sua colisão.
+
+    Args:
+        particula1 (Particula): representa uma das partículas na colisão
+        particula2 (Paerticula): representa a outra particula
+        
+    Returns:
+        _return_ (_type_): 
+    '''
+
+# -------------------- Definindo uma classe para cada partícula:
 
 class Particula:
+    '''
+    Classe utilizada para representar cada átomo.
+    '''
     def __init__(self, r, vr, raio):
         x, y, z = r
         vx, vy, vz = vr
@@ -26,7 +51,7 @@ class Particula:
         self.vel = vector(vx, vy, vz)
         self.raio = raio
         
-# Parâmetros iniciais:
+# -------------------- Parâmetros iniciais:
 
 janelaW = 1000
 janelaH = 1000
@@ -42,7 +67,7 @@ vermelho = color.red
 animation = canvas(width=janelaW, height=janelaH)
 animation.range = L
 
-# Caixa:
+# -------------------- Caixa:
 
 caixaBot = curve(color=azul, radius=espessuraCaixa)
 caixaBot.append([vector(-d,-d,-d), vector(-d,-d,d), vector(d,-d,d), vector(d,-d,-d), vector(-d,-d,-d)])
@@ -61,7 +86,7 @@ particulas = []
 posicoes = []
 velocidades = []
 
-# Criando partículas:
+# -------------------- Criando partículas:
 
 for num in range(numParticulas):
     particula = Particula([random.randint(-L/2, L/2) for i in range(3)], [random.randint(10,20) for i in range(3)], 0.5)
@@ -69,7 +94,7 @@ for num in range(numParticulas):
     posicoes.append(particula.pos)
     velocidades.append(particula.vel)
 
-# Animação:
+# -------------------- Animação:
  
 colisao = False
 while not colisao:
@@ -78,17 +103,17 @@ while not colisao:
     # Update
     for num in range(numParticulas): particulas[num].pos = posicoes[num] = posicoes[num] + (velocidades[num]/massa)*dt
     
-    # Colisões (parede imaginária lado L)
+    # Colisões (parede imaginária de lado L)
     for i in range(numParticulas):
         loc = posicoes[i]
         
-        if abs(loc.x) > L/2:
+        if abs(loc.x) >= L/2:
             velocidades[i].x = -velocidades[i].x
         
-        if abs(loc.y) > L/2:
+        if abs(loc.y) >= L/2:
             velocidades[i].y = -velocidades[i].y
             
-        if abs(loc.z) > L/2:
+        if abs(loc.z) >= L/2:
             velocidades[i].z = -velocidades[i].z
 
     # Colisão (entre as partículas)
