@@ -3,6 +3,7 @@
 from vpython import *
 import random
 import itertools
+import numpy as np
 
 # -------------------- Funções:
 
@@ -24,17 +25,48 @@ def calcular_distancia(r1, r2):
     distancia = sqrt((x2 - x1)**2 + (y2 - y1)**2)
     return distancia
 
+def angulo_vetorial(v1, v2):
+    '''
+    Calcula o ângulos entre os vetores de velocidade em radianos.
+
+    Args:
+        v1 (vpython vector): vetor velocidade da partícula 1
+        v2 (vpython vector): vetor velocidade da partícula 2
+
+    Returns:
+        alpha_radianos (float): ângulo formado pelos vetores velocidade de ambas partículas
+    '''
+    alpha_radianos = np.arccos((v1.x*v2.x + v1.y*v2.y)
+                            /(sqrt((v1.x**2 + v1.y**2))
+                              * sqrt(v2.x**2 + v2.y**2)))
+    return alpha_radianos
+
+def magnitude_vetorial(vr):
+    '''
+    Calcula a magnitude de um vetor.
+
+    Args:
+        vr (vpython vector): vetor velocidade
+
+    Returns:
+        magnitude (float): magnitude do vetor vr
+    '''
+    magnitude = sqrt(vr.x**2 + vr.y**2)
+    return magnitude
+
+
 def colisao(particula1, particula2):
     '''
     Calcula os vetores resultantes de cada partícula após sua colisão.
 
     Args:
         particula1 (Particula): representa uma das partículas na colisão
-        particula2 (Paerticula): representa a outra particula
+        particula2 (Particula): representa a outra particula
         
     Returns:
         _return_ (_type_): 
     '''
+    pass
 
 # -------------------- Definindo uma classe para cada partícula:
 
@@ -77,19 +109,20 @@ velocidades = []
 # -------------------- Criando partículas:
 
 for num in range(numParticulas):
-    particula = Particula([random.randint(-L/2,L/2) for i in range(2)], [random.randint(10,20) for i in range(2)], 0.5)
+    particula = Particula([random.randint(-L/2,L/2) for i in range(2)],
+                          [random.randint(10,20) for i in range(2)], 0.5)
     particulas.append(sphere(pos = particula.pos, radius = particula.raio, color = vermelho))
     posicoes.append(particula.pos)
     velocidades.append(particula.vel)
 
 # -------------------- Animação:
 
-colisao = False
-while not colisao:
+while True:
     rate(300)
     
     # Update
-    for num in range(numParticulas): particulas[num].pos = posicoes[num] = posicoes[num] + velocidades[num]*dt
+    for num in range(numParticulas): particulas[num].pos = posicoes[num] = \
+        posicoes[num] + velocidades[num]*dt
     
     # Colisões (parede imaginária de lado L)
     for i in range(numParticulas):
@@ -104,5 +137,4 @@ while not colisao:
     # Colisão (entre as partículas)
     for particula1, particula2 in itertools.combinations(particulas,2):
         if (calcular_distancia(particula1.pos, particula2.pos) <= 1):
-            colisao = True
-            print(f'Houve uma colisão!!! :)')
+            colisao(particula1, particula2)

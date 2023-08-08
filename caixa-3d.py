@@ -37,6 +37,7 @@ def colisao(particula1, particula2):
     Returns:
         _return_ (_type_): 
     '''
+    pass
 
 # -------------------- Definindo uma classe para cada partícula:
 
@@ -70,17 +71,9 @@ animation.range = L
 # -------------------- Caixa:
 
 caixaBot = curve(color=azul, radius=espessuraCaixa)
-caixaBot.append([vector(-d,-d,-d), vector(-d,-d,d), vector(d,-d,d), vector(d,-d,-d), vector(-d,-d,-d)])
+caixaBot.append([vector(-d,-d,-d), vector(-d,-d,d), vector(d,-d,d), vector(d,-d,-d), vector(-d,-d,-d), vector(-d,d,-d), vector(-d,d,d), vector(-d,-d,d)])
 caixaTop = curve(color=azul, radius=espessuraCaixa)
-caixaTop.append([vector(-d,d,-d), vector(-d,d,d), vector(d,d,d), vector(d,d,-d), vector(-d,d,-d)])
-aresta1 = curve(color=azul, radius=espessuraCaixa)
-aresta1.append([vector(-d,-d,d), vector(-d,d,d)])
-aresta2 = curve(color=azul, radius=espessuraCaixa)
-aresta2.append([vector(-d,-d,-d), vector(-d,d,-d)])
-aresta3 = curve(color=azul, radius=espessuraCaixa)
-aresta3.append([vector(d,-d,-d), vector(d,d,-d)])
-aresta4 = curve(color=azul, radius=espessuraCaixa)
-aresta4.append([vector(d,-d,d), vector(d,d,d)])
+caixaTop.append([vector(d,d,d), vector(d,d,-d), vector(-d,d,-d), vector(-d,d,d), vector(d,d,d), vector(d,-d,d), vector(d,-d,-d), vector(d,d,-d)])
 
 particulas = []
 posicoes = []
