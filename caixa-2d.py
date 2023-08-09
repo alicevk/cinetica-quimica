@@ -71,10 +71,10 @@ def colisao(particula1, particula2):
     v2 = particula2.vel
     m1 = particula1.massa
     m2 = particula2.massa
-    x1 = particula1.pos
-    x2 = particula2.pos
-    v1_atualizada = v1 - (2*m2/(m1+m2))*(dot(v1-v2, x1-x2)/(mag2(x1-x2)))*(x1-x2)
-    v2_atualizada = v2 - (2*m1/(m1+m2))*(dot(v2-v1, x2-x1)/(mag2(x2-x1)))*(x2-x1)
+    x1 = particula1.esfera.pos
+    x2 = particula2.esfera.pos
+    v1_atualizada = v1 - ((2*m2)/(m1+m2))*(dot(v1-v2, x1-x2)/(mag2(x1-x2)))*(x1-x2)
+    v2_atualizada = v2 - ((2*m1)/(m1+m2))*(dot(v2-v1, x2-x1)/(mag2(x2-x1)))*(x2-x1)
     print(f"Houve uma colisão entre as partículas {particula1.id} e {particula2.id}!")
     return v1_atualizada, v2_atualizada
 
@@ -84,7 +84,7 @@ class Particula:
     '''
     Classe utilizada para representar cada átomo.
     '''
-    def __init__(self, r, vr, raio, massa, id, cor):
+    def __init__(self, r, vr, raio, massa, id, cor, pointer=False):
         x, y = r
         vx, vy = vr
         self.pos = vector(x, y, 0)
@@ -94,6 +94,7 @@ class Particula:
         self.id = id
         self.cor = cor
         self.esfera = sphere(pos=self.pos, radius=self.raio, color=self.cor)
+        if pointer: self.pointer = arrow(pos=self.esfera.pos, axis=self.vel, length=.75, round=True)
         
 # -------------------- Parâmetros iniciais:
 
@@ -104,6 +105,7 @@ numParticulas = 10
 dt = 1e-3
 d = L/2 + 0.5
 espessuraCaixa = 0.05
+pointer = False
 azul = color.blue
 vermelho = color.red
 
@@ -116,18 +118,14 @@ caixa = curve(color=azul, radius=espessuraCaixa)
 caixa.append([vector(-d,-d,0), vector(-d,d,0), vector(d,d,0), vector(d,-d,0), vector(-d,-d,0)])
 
 particulas = []
-posicoes = []
-velocidades = []
 
 # -------------------- Criando partículas:
 
 for num in range(numParticulas):
-    particula = Particula([random.randint(-L/2,L/2) for i in range(2)],
+    particula = Particula([random.randrange(-L/2,L/2) for i in range(2)],
                           [random.randint(10,20) for i in range(2)],
-                          0.5 , 1, num, vermelho)
+                          0.3 , 1, num, vermelho, pointer)
     particulas.append(particula)
-    posicoes.append(particula.pos)
-    velocidades.append(particula.vel)
 
 # -------------------- Animação:
 
@@ -135,23 +133,27 @@ while True:
     rate(300)
     
     # Update
-    for num in range(numParticulas): particulas[num].esfera.pos = posicoes[num] = \
-        posicoes[num] + velocidades[num]*dt
-    
-    # Colisões (parede imaginária de lado L)
-    for i in range(numParticulas):
-        loc = posicoes[i]
-        
-        if abs(loc.x) >= L/2:
-            velocidades[i].x = -velocidades[i].x
-        
-        if abs(loc.y) >= L/2:
-            velocidades[i].y = -velocidades[i].y
+    for num in range(numParticulas):
+        particulas[num].esfera.pos += particulas[num].vel*dt
+        if pointer:
+            particulas[num].pointer.pos = particulas[num].esfera.pos
+            particulas[num].pointer.axis = particulas[num].vel
+            particulas[num].pointer.length = 0.75
 
     # Colisão (entre as partículas)
     for particula1, particula2 in itertools.combinations(particulas,2):
-        if (calcular_distancia(particula1.esfera.pos, particula2.esfera.pos) <= 1):
+        if (calcular_distancia(particula1.esfera.pos, particula2.esfera.pos) <= particula1.raio + particula2.raio):
             v1_atualizada, v2_atualizada = colisao(particula1, particula2)
             id1, id2 = particula1.id, particula2.id
-            velocidades[id1] = v1_atualizada
-            velocidades[id2] = v2_atualizada
+            particulas[id1].vel = v1_atualizada
+            particulas[id2].vel = v2_atualizada
+            
+    # Colisões (parede imaginária de lado L)
+    for i in range(numParticulas):
+        loc = particulas[i].esfera.pos
+        
+        if abs(loc.x) >= L/2:
+            particulas[i].vel.x = -particulas[i].vel.x
+        
+        if abs(loc.y) >= L/2:
+            particulas[i].vel.y = -particulas[i].vel.y
