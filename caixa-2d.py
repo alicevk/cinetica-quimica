@@ -84,7 +84,7 @@ class Particula:
     '''
     Classe utilizada para representar cada átomo.
     '''
-    def __init__(self, r, vr, raio, massa, id, cor, pointer=False):
+    def __init__(self, r, vr, raio, massa, id, cor, pointer):
         x, y = r
         vx, vy = vr
         self.pos = vector(x, y, 0)
