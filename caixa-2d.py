@@ -4,7 +4,7 @@ from vpython import *
 import random
 import itertools
 
-# -------------------- Funções:
+# -------------------- Funções gerais:
 
 def calcular_distancia(r1, r2):
     '''
@@ -76,59 +76,22 @@ def colisao(particula1, particula2):
     v2_atualizada = v2 - ((2*m1)/(m1+m2))*(dot(v2-v1, x2-x1)/(mag2(x2-x1)))*(x2-x1)
     print(f"Houve uma colisão entre as partículas {particula1.id} e {particula2.id}!")
     return v1_atualizada, v2_atualizada
-
-# -------------------- Definindo uma classe para cada partícula:
-
-class Particula:
-    '''
-    Classe utilizada para representar cada átomo.
-    '''
-    def __init__(self, r, vr, raio, massa, id, cor, pointer):
-        x, y = r
-        vx, vy = vr
-        self.pos = vector(x, y, 0)
-        self.vel = vector(vx, vy, 0)
-        self.raio = raio
-        self.massa = massa
-        self.id = id
-        self.cor = cor
-        self.esfera = sphere(pos=self.pos, radius=self.raio, color=self.cor)
-        if pointer: self.pointer = arrow(pos=self.esfera.pos, axis=self.vel, length=.75, round=True)
         
-# -------------------- Parâmetros iniciais:
+# -------------------- Funções da simulação:
 
-janelaW = 1000
-janelaH = 1000
-L = 10
-numParticulas = 10
-dt = 1e-3
-d = L/2 + 0.5
-espessuraCaixa = 0.05
-pointer = False
-azul = color.blue
-vermelho = color.red
-
-animation = canvas(width=janelaW, height=janelaH)
-animation.range = L
-
-# -------------------- Caixa:
-
-caixa = curve(color=azul, radius=espessuraCaixa)
-caixa.append([vector(-d,-d,0), vector(-d,d,0), vector(d,d,0), vector(d,-d,0), vector(-d,-d,0)])
-
-particulas = []
-
-# -------------------- Criando partículas:
-
-for num in range(numParticulas):
-    particula = Particula([random.randrange(-L/2,L/2) for i in range(2)],
-                          [random.randint(10,20) for i in range(2)],
-                          0.3 , 1, num, vermelho, pointer)
-    particulas.append(particula)
-
-# -------------------- Animação:
-
-while True:
+def criarCaixa():
+    caixa = curve(color=azul, radius=espessuraCaixa)
+    caixa.append([vector(-d,-d,0), vector(-d,d,0), vector(d,d,0), vector(d,-d,0), vector(-d,-d,0)])
+    
+    
+def criarParticulas():
+    for num in range(numParticulas):
+        particula = Particula([random.randrange(-L/2,L/2) for i in range(2)],
+                            [random.randint(10,20) for i in range(2)],
+                            0.3 , 1, num, vermelho, pointer)
+        particulas.append(particula)
+        
+def loopAnimacao():
     rate(300)
     
     # Update
@@ -156,3 +119,49 @@ while True:
         
         if abs(loc.y) >= L/2:
             particulas[i].vel.y = -particulas[i].vel.y
+            
+def simulacao():
+    criarCaixa()
+    criarParticulas()
+    while True:
+        loopAnimacao()
+
+
+# -------------------- Classe das partícula:
+
+class Particula:
+    '''
+    Classe utilizada para representar cada átomo.
+    '''
+    def __init__(self, r, vr, raio, massa, id, cor, pointer):
+        x, y = r
+        vx, vy = vr
+        self.pos = vector(x, y, 0)
+        self.vel = vector(vx, vy, 0)
+        self.raio = raio
+        self.massa = massa
+        self.id = id
+        self.cor = cor
+        self.esfera = sphere(pos=self.pos, radius=self.raio, color=self.cor)
+        if pointer: self.pointer = arrow(pos=self.esfera.pos, axis=self.vel, length=.75, round=True)
+        
+
+# -------------------- Parâmetros iniciais:
+
+janelaW = 1000
+janelaH = 1000
+L = 10
+numParticulas = 10
+dt = 1e-3
+d = L/2 + 0.5
+espessuraCaixa = 0.05
+pointer = False
+azul = color.blue
+vermelho = color.red
+
+animation = canvas(width=janelaW, height=janelaH)
+animation.range = L
+
+particulas = []
+
+simulacao()
