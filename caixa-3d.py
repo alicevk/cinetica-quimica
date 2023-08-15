@@ -3,7 +3,6 @@
 from vpython import *
 import random
 import itertools
-import numpy as np
 
 # -------------------- Funções:
 
@@ -38,7 +37,7 @@ def angulo_vetorial(v1, v2):
     Returns:
         alpha_radianos (float): ângulo formado pelos vetores velocidade de ambas partículas
     '''
-    alpha_radianos = np.arccos((v1.x*v2.x + v1.y*v2.y)
+    alpha_radianos = acos((v1.x*v2.x + v1.y*v2.y)
                             /(sqrt((v1.x**2 + v1.y**2))
                               * sqrt(v2.x**2 + v2.y**2)))
     return alpha_radianos
