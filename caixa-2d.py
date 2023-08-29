@@ -65,6 +65,7 @@ def criarParticulas():
                             [randint(10,20) for i in range(2)],
                             0.3 , 1, num, vermelho, pointer)
         particulas.append(particula)
+       
         
 def loopAnimacao():
     '''
@@ -82,7 +83,10 @@ def loopAnimacao():
 
     # Colisão (entre as partículas)
     for particula1, particula2 in combinations(particulas,2):
-        if (calcDist(particula1.esfera.pos, particula2.esfera.pos) <= particula1.raio + particula2.raio):
+        distAtual = calcDist(particula1.esfera.pos, particula2.esfera.pos)
+        distFutura = calcDist((particula1.esfera.pos + particula1.vel*dt),
+                            ((particula1.esfera.pos + particula1.vel*dt)))
+        if (distAtual <= (particula1.raio + particula2.raio)) and (distAtual > distFutura):
             v1_atualizada, v2_atualizada = colisao(particula1, particula2)
             id1, id2 = particula1.id, particula2.id
             particulas[id1].vel = v1_atualizada
@@ -97,6 +101,7 @@ def loopAnimacao():
         
         if abs(loc.y) >= L/2:
             particulas[i].vel.y = -particulas[i].vel.y
+           
             
 def simulacao():
     criarCaixa()
@@ -141,5 +146,6 @@ animation = canvas(width=janelaW, height=janelaH, align='left')
 animation.range = L
 
 particulas = []
+
 
 simulacao()
