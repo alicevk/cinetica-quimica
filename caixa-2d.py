@@ -1,12 +1,13 @@
 # -------------------- Importações:
 
 from vpython import *
-import random
-import itertools
+from random import randrange, randint
+from itertools import combinations
+import numpy as np
 
 # -------------------- Funções gerais:
 
-def calcular_distancia(r1, r2):
+def calcDist(r1, r2):
     '''
     Calcula a distância euclidiana bidimensional entre os vetores posição r1 e r2.
 
@@ -17,41 +18,8 @@ def calcular_distancia(r1, r2):
     Returns:
         distancia (float): distância euclidiana entre os vetores r1 e r2
     '''
-    x1 = r1.x
-    x2 = r2.x
-    y1 = r1.y
-    y2 = r2.y
-    distancia = sqrt((x2 - x1)**2 + (y2 - y1)**2)
+    distancia = mag(r1-r2)
     return distancia
-
-def angulo_vetorial(v1, v2):
-    '''
-    Calcula o ângulos entre os vetores de velocidade em radianos.
-
-    Args:
-        v1 (vpython vector): vetor velocidade da partícula 1
-        v2 (vpython vector): vetor velocidade da partícula 2
-
-    Returns:
-        alpha_radianos (float): ângulo formado pelos vetores velocidade de ambas partículas
-    '''
-    alpha_radianos = acos((v1.x*v2.x + v1.y*v2.y)
-                            /(sqrt((v1.x**2 + v1.y**2))
-                              * sqrt(v2.x**2 + v2.y**2)))
-    return alpha_radianos
-
-def magnitude_vetorial(vr):
-    '''
-    Calcula a magnitude de um vetor.
-
-    Args:
-        vr (vpython vector): vetor velocidade
-
-    Returns:
-        magnitude (float): magnitude do vetor vr
-    '''
-    magnitude = sqrt(vr.x**2 + vr.y**2)
-    return magnitude
 
 
 def colisao(particula1, particula2):
@@ -77,21 +45,31 @@ def colisao(particula1, particula2):
     print(f"Houve uma colisão entre as partículas {particula1.id} e {particula2.id}!")
     return v1_atualizada, v2_atualizada
         
+        
 # -------------------- Funções da simulação:
 
 def criarCaixa():
+    '''
+    Cria representação das arestas da caixa imaginária para conter a simulação de colisão.
+    '''
     caixa = curve(color=azul, radius=espessuraCaixa)
     caixa.append([vector(-d,-d,0), vector(-d,d,0), vector(d,d,0), vector(d,-d,0), vector(-d,-d,0)])
     
     
 def criarParticulas():
+    '''
+    Cria um número de instâncias da classe Partícula em uma lista.
+    '''
     for num in range(numParticulas):
-        particula = Particula([random.randrange(-L/2,L/2) for i in range(2)],
-                            [random.randint(10,20) for i in range(2)],
+        particula = Particula([randrange(-L/2,L/2) for i in range(2)],
+                            [randint(10,20) for i in range(2)],
                             0.3 , 1, num, vermelho, pointer)
         particulas.append(particula)
         
 def loopAnimacao():
+    '''
+    Função de loop para os aspectos visuais da simulação.
+    '''
     rate(300)
     
     # Update
@@ -103,8 +81,8 @@ def loopAnimacao():
             particulas[num].pointer.length = 0.75
 
     # Colisão (entre as partículas)
-    for particula1, particula2 in itertools.combinations(particulas,2):
-        if (calcular_distancia(particula1.esfera.pos, particula2.esfera.pos) <= particula1.raio + particula2.raio):
+    for particula1, particula2 in combinations(particulas,2):
+        if (calcDist(particula1.esfera.pos, particula2.esfera.pos) <= particula1.raio + particula2.raio):
             v1_atualizada, v2_atualizada = colisao(particula1, particula2)
             id1, id2 = particula1.id, particula2.id
             particulas[id1].vel = v1_atualizada
@@ -148,8 +126,8 @@ class Particula:
 
 # -------------------- Parâmetros iniciais:
 
-janelaW = 1000
-janelaH = 1000
+janelaW = 800
+janelaH = 800
 L = 10
 numParticulas = 10
 dt = 1e-3
@@ -159,7 +137,7 @@ pointer = False
 azul = color.blue
 vermelho = color.red
 
-animation = canvas(width=janelaW, height=janelaH)
+animation = canvas(width=janelaW, height=janelaH, align='left')
 animation.range = L
 
 particulas = []
