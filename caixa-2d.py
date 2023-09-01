@@ -44,8 +44,8 @@ def colisao(particula1, particula2):
     v2_atualizada = v2 - ((2*m1)/(m1+m2))*(dot(v2-v1, x2-x1)/(mag2(x2-x1)))*(x2-x1)
     print(f"Houve uma colisão entre as partículas {particula1.id} e {particula2.id}!")
     return v1_atualizada, v2_atualizada
-        
-        
+
+
 # -------------------- Funções da simulação:
 
 def criarCaixa():
@@ -54,8 +54,8 @@ def criarCaixa():
     '''
     caixa = curve(color=azul, radius=espessuraCaixa)
     caixa.append([vector(-d,-d,0), vector(-d,d,0), vector(d,d,0), vector(d,-d,0), vector(-d,-d,0)])
-    
-    
+
+
 def criarParticulas():
     '''
     Cria um número de instâncias da classe Partícula em uma lista.
@@ -65,21 +65,43 @@ def criarParticulas():
                             [randint(10,20) for i in range(2)],
                             0.3 , 1, num, vermelho, pointer)
         particulas.append(particula)
-       
-        
-def loopAnimacao():
+
+
+def criarHistograma():
+    '''
+    Cria um histograma com as velocidades das patículas, seguindo a distribuição de Maxwell-Boltzmann.
+
+    Args:
+        particulas (list): Lista dos objetos 'Partículas'.
+    '''
+    histograma = graph(width=histogramaW, height=histogramaH, align='left', xmax=maxVel, ymax=numParticulas,
+                        xtitle='Velocidade (m/s)', ytitle = 'Densidade de Probabilidade')
+    histData = [mag(particulas[n].vel) for n in range(numParticulas)]
+    histData = np.histogram(histData, 10, (0,40))
+    vDist = gvbars(color=color.red, delta=dv)
+    vDist.data = list(zip(histData[1], histData[0]))
+
+    return vDist
+
+
+def loopAnimacao(histograma):
     '''
     Função de loop para os aspectos visuais da simulação.
     '''
     rate(300)
+    histTemp = []
     
-    # Update
+    # Update (partículas, pointers e histograma)
     for num in range(numParticulas):
         particulas[num].esfera.pos += particulas[num].vel*dt
+        histTemp.append(mag(particulas[num].vel))
         if pointer:
             particulas[num].pointer.pos = particulas[num].esfera.pos
             particulas[num].pointer.axis = particulas[num].vel
             particulas[num].pointer.length = 0.75
+
+    histData = np.histogram(histTemp, 10, (0,40))
+    histograma.data = list(zip(histData[1],histData[0]))
 
     # Colisão (entre as partículas)
     for particula1, particula2 in combinations(particulas,2):
@@ -101,13 +123,14 @@ def loopAnimacao():
         
         if abs(loc.y) >= L/2:
             particulas[i].vel.y = -particulas[i].vel.y
-           
-            
+
+
 def simulacao():
     criarCaixa()
     criarParticulas()
+    histograma = criarHistograma()
     while True:
-        loopAnimacao()
+        loopAnimacao(histograma)
 
 
 # -------------------- Classe das partícula:
@@ -127,17 +150,21 @@ class Particula:
         self.cor = cor
         self.esfera = sphere(pos=self.pos, radius=self.raio, color=self.cor)
         if pointer: self.pointer = arrow(pos=self.esfera.pos, axis=self.vel, length=.75, round=True)
-        
+
 
 # -------------------- Parâmetros iniciais:
 
 janelaW = 800
 janelaH = 800
+histogramaW = janelaW/2
+histogramaH = janelaH/3
 L = 10
 numParticulas = 10
 dt = 1e-3
 d = L/2 + 0.5
 espessuraCaixa = 0.05
+dv = 4
+maxVel = 40
 pointer = False
 azul = color.blue
 vermelho = color.red
