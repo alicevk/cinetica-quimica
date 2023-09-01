@@ -16,11 +16,23 @@ def calcDist(r1, r2):
         r2 (vpython vector): vetor posição (x2, y2, 0) da partícula 2
 
     Returns:
-        distancia (float): distância euclidiana entre os vetores r1 e r2
+        (float): distância euclidiana entre os vetores r1 e r2
     '''
-    distancia = mag(r1-r2)
-    return distancia
+    return mag(r1-r2)
 
+
+def calcMassa(particulas):
+    '''
+    Calcula a massa média das partículas no sistema.
+
+    Args:
+        particulas (list): Lista dos objetos 'Partículas'; as partículas do sistema
+
+    Returns:
+        (float): massa média das partículas
+    '''
+    massas = [part.massa for part in particulas]
+    return sum(massas)/len(massas)
 
 def colisao(particula1, particula2):
     '''
@@ -46,6 +58,16 @@ def colisao(particula1, particula2):
     return v1_atualizada, v2_atualizada
 
 
+def maxwellBoltzmann(v, massaMedia):
+    '''
+    Função para plotagem da distribuição de Maxwell Boltzmann.
+    '''
+    alpha = (dv**2/binning) * numParticulas
+    first = (massaMedia / (2*pi*k*T))**1.5
+    second = exp(-.5*massaMedia*v**2 / (k*T))*v**2
+
+    return (alpha * first * second) / numParticulas
+
 # -------------------- Funções da simulação:
 
 def criarCaixa():
@@ -60,27 +82,42 @@ def criarParticulas():
     '''
     Cria um número de instâncias da classe Partícula em uma lista.
     '''
+    raio = 0.1
+    massa = 4e-23
     for num in range(numParticulas):
-        particula = Particula([randrange(-L/2,L/2) for i in range(2)],
-                            [randint(10,20) for i in range(2)],
-                            0.3 , 1, num, vermelho, pointer)
+        particula = Particula(
+            [randrange(-L / 2 + 1, L / 2 - 1) for _ in range(2)],
+            [randint(0, maxVel) for _ in range(2)],
+            raio,
+            massa,
+            num,
+            vermelho,
+            pointer,
+        )
         particulas.append(particula)
 
 
 def criarHistograma():
     '''
-    Cria um histograma com as velocidades das patículas, seguindo a distribuição de Maxwell-Boltzmann.
+    Cria um histograma com as velocidades das patículas, juntamente da curva de
+    distribuição de Maxwell-Boltzmann.
 
     Args:
-        particulas (list): Lista dos objetos 'Partículas'.
+        particulas (list): Lista dos objetos 'Partículas'; as partículas do sistema
     '''
-    histograma = graph(width=histogramaW, height=histogramaH, align='left', xmax=maxVel, ymax=numParticulas,
+    histograma = graph(width=histogramaW, height=histogramaH, align='left', xmax=maxVel, ymax=1,
                         xtitle='Velocidade (m/s)', ytitle = 'Densidade de Probabilidade')
     histData = [mag(particulas[n].vel) for n in range(numParticulas)]
-    histData = np.histogram(histData, 10, (0,40))
+    histData = np.histogram(histData, binning, (0,maxVel))
+    histVals = histData[0]/numParticulas
     vDist = gvbars(color=color.red, delta=dv)
-    vDist.data = list(zip(histData[1], histData[0]))
+    vDist.data = list(zip(histData[1], histVals))
     
+    # Plotando a distribuição de Maxwell-Boltzmann
+    maxboltz = gcurve(color=color.blue, width=2)
+    for vx in arange(0,maxVel,0.1):
+        vy = maxwellBoltzmann(vx, calcMassa(particulas))
+        maxboltz.plot(vx, vy)
     return vDist
 
 
@@ -100,8 +137,9 @@ def loopAnimacao(histograma):
             particulas[num].pointer.axis = particulas[num].vel
             particulas[num].pointer.length = 0.75
 
-    histData = np.histogram(histTemp, 10, (0,40))
-    histograma.data = list(zip(histData[1],histData[0]))
+    histData = np.histogram(histTemp, binning, (0, maxVel))
+    histVals = histData[0]/numParticulas
+    histograma.data = list(zip(histData[1],histVals))
 
     # Colisão (entre as partículas)
     for particula1, particula2 in combinations(particulas,2):
@@ -120,14 +158,17 @@ def loopAnimacao(histograma):
         posAtual = part.esfera.pos
         posFutura = part.esfera.pos + part.vel*dt
         
-        if (abs(posAtual.x) >= L/2) and (abs(posAtual.x) < abs(posFutura.x)):
+        if (abs(posAtual.x) >= (L/2-part.raio)) and (abs(posAtual.x) < abs(posFutura.x)):
             particulas[i].vel.x = -particulas[i].vel.x
         
-        if (abs(posAtual.y) >= L/2) and (abs(posAtual.y) < abs(posFutura.y)):
+        if (abs(posAtual.y) >= (L/2-part.raio)) and (abs(posAtual.y) < abs(posFutura.y)):
             particulas[i].vel.y = -particulas[i].vel.y
 
 
 def simulacao():
+    '''
+    Função que roda a simulação.
+    '''
     criarCaixa()
     criarParticulas()
     histograma = criarHistograma()
@@ -139,7 +180,7 @@ def simulacao():
 
 class Particula:
     '''
-    Classe utilizada para representar cada átomo.
+    Classe utilizada para representar cada átomo como uma esfera dura.
     '''
     def __init__(self, r, vr, raio, massa, id, cor, pointer):
         x, y = r
@@ -156,25 +197,33 @@ class Particula:
 
 # -------------------- Parâmetros iniciais:
 
+# Configurações da janela
 janelaW = 800
 janelaH = 800
 histogramaW = janelaW/2
 histogramaH = janelaH/3
+
+# Configurações da simulação
 L = 10
-numParticulas = 10
-dt = 1e-3
-d = L/2 + 0.5
-espessuraCaixa = 0.05
-dv = 4
-maxVel = 40
+espessuraCaixa = L/200
+d = L/2 + espessuraCaixa
+
+numParticulas = 25
 pointer = False
+particulas = []
+
 azul = color.blue
 vermelho = color.red
 
+dt = 1e-3
+dv = 4
+maxVel = 40
+binning = maxVel // dv
+k = 1.38e-23
+T = 24
 animation = canvas(width=janelaW, height=janelaH, align='left')
 animation.range = L
 
-particulas = []
-
+# -------------------- Simulação:
 
 simulacao()
