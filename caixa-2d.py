@@ -80,7 +80,7 @@ def criarHistograma():
     histData = np.histogram(histData, 10, (0,40))
     vDist = gvbars(color=color.red, delta=dv)
     vDist.data = list(zip(histData[1], histData[0]))
-
+    
     return vDist
 
 
@@ -116,12 +116,14 @@ def loopAnimacao(histograma):
             
     # Colisões (parede imaginária de lado L)
     for i in range(numParticulas):
-        loc = particulas[i].esfera.pos
+        part = particulas[i]
+        posAtual = part.esfera.pos
+        posFutura = part.esfera.pos + part.vel*dt
         
-        if abs(loc.x) >= L/2:
+        if (abs(posAtual.x) >= L/2) and (abs(posAtual.x) < abs(posFutura.x)):
             particulas[i].vel.x = -particulas[i].vel.x
         
-        if abs(loc.y) >= L/2:
+        if (abs(posAtual.y) >= L/2) and (abs(posAtual.y) < abs(posFutura.y)):
             particulas[i].vel.y = -particulas[i].vel.y
 
 
