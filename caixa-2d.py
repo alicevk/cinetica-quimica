@@ -3,7 +3,7 @@
 from vpython import *
 from random import randrange, randint
 from itertools import combinations
-import numpy as np
+from numpy import histogram
 
 # -------------------- Funções gerais:
 
@@ -108,7 +108,7 @@ def criarHistograma():
     histograma = graph(width=histogramaW, height=histogramaH, align='left', xmax=maxVel, ymax=1,
                         xtitle='Velocidade (m/s)', ytitle = 'Densidade de Probabilidade')
     histData = [mag(particulas[n].vel) for n in range(numParticulas)]
-    histData = np.histogram(histData, binning, (0,maxVel))
+    histData = histogram(histData, binning, (0,maxVel))
     histVals = histData[0]/numParticulas
     vDist = gvbars(color=color.red, delta=dv)
     vDist.data = list(zip(histData[1], histVals))
@@ -137,7 +137,7 @@ def loopAnimacao(histograma):
             particulas[num].pointer.axis = particulas[num].vel
             particulas[num].pointer.length = 0.75
 
-    histData = np.histogram(histTemp, binning, (0, maxVel))
+    histData = histogram(histTemp, binning, (0, maxVel))
     histVals = histData[0]/numParticulas
     histograma.data = list(zip(histData[1],histVals))
 

@@ -1,6 +1,8 @@
+<hr>
+
 # Simulação Computacional de Cinética Química
 
-Este repositório contém código e recursos relacionados à simulação computacional de cinética química. A cinética química estuda a velocidade das reações químicas e como ela é afetada por diferentes variáveis. Aqui, você encontrará implementações de modelos de simulação, exemplos de uso e documentação relacionada.
+<hr>
 
 ## Conteúdo
 
