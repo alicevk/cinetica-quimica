@@ -5,7 +5,7 @@ from random import randrange, randint
 from itertools import combinations
 from numpy import histogram
 
-# -------------------- Funções gerais:
+# -------------------- Funções:
 
 def calcDist(r1, r2):
     '''
@@ -21,6 +21,15 @@ def calcDist(r1, r2):
     return mag(r1-r2)
 
 
+def calcCentroMassa(particula1, particula2):
+    r1 = particula1.esfera.pos
+    r2 = particula2.esfera.pos
+    m1 = particula1.massa
+    m2 = particula2.massa
+
+    return (r1*m1 + r2*m2)/m1 + m2
+
+
 def calcMassa(particulas):
     '''
     Calcula a massa média das partículas no sistema.
@@ -34,7 +43,8 @@ def calcMassa(particulas):
     massas = [part.massa for part in particulas]
     return sum(massas)/len(massas)
 
-def colisao(particula1, particula2):
+
+def colisaoElastica(particula1, particula2):
     '''
     Calcula os vetores resultantes de cada partícula após sua colisão.
 
@@ -58,6 +68,29 @@ def colisao(particula1, particula2):
     return v1_atualizada, v2_atualizada
 
 
+def colisaoInelastica(particula1, particula2, massaFinal):
+    '''
+    Calcula o vetor resultante de uma partícula após uma reação.
+
+    Args:
+        particula1 (Particula): representa uma das partículas na colisão
+        particula2 (Particula): representa a outra particula
+        
+    Returns:
+        v_atualizada (vpython vector): vetor velocidade atualizado para a partícula final
+    '''
+    v1 = particula1.vel
+    v2 = particula2.vel
+    m1 = particula1.massa
+    m2 = particula2.massa
+    r1 = particula1.esfera.pos
+    r2 = particula2.esfera.pos
+    v_atualizada = (m1*v1 + m2*v2) / massaFinal
+    r_atualizada = (r1+r2)/2
+    print(f"Houve uma reação entre as partículas {particula1.id} e {particula2.id}!")
+    return v_atualizada, r_atualizada
+
+
 def maxwellBoltzmann(v, massaMedia):
     '''
     Função para plotagem da distribuição de Maxwell Boltzmann.
@@ -68,7 +101,60 @@ def maxwellBoltzmann(v, massaMedia):
 
     return (alpha * first * second) / numParticulas
 
-# -------------------- Funções da simulação:
+
+def reacao(particula1, particula2):
+    '''
+    Chamada quando ocorre uma colisão entre duas partículas. Chama uma colisão elástica
+    ou inelástica dependendo da probabilidade de reação.
+
+    Args:
+        particula1 (Particula): representa uma das partículas na colisão
+        particula2 (Particula): representa a outra particula
+    '''
+    global numParticulas, particulas
+    
+    tipo1, tipo2 = particula1.tipo, particula2.tipo
+    if (randint(0,100) <= probReacao) and (tipo1 == tipo2 == 'A'):
+        massaNova = calcMassa([particula1, particula2])
+        v_atualizada, r_atualizada = colisaoInelastica(particula1, particula2, massaNova)
+        id = particula1.id
+        particulas[id].vel, particulas[id].pos = v_atualizada, r_atualizada
+        particulas[id].cor = particulas[id].esfera.color = branco
+        particulas[id].tipo = 'B'
+
+        particulasMortas.append(particula2)
+
+    else:
+        v1_atualizada, v2_atualizada = colisaoElastica(particula1, particula2)
+        id1, id2 = particula1.id, particula2.id
+        particulas[id1].vel = v1_atualizada
+        particulas[id2].vel = v2_atualizada
+        
+
+def deletaParticulas():
+    '''
+    deleta todas as particulas mortas
+
+    Args:
+        particulasMortas (_type_): _description_
+    '''
+    global particulasMortas, numParticulas
+    
+    # Apaga as partículas
+    for particula in particulasMortas:
+        particula.esfera.visible = False
+        particula.pos = particula.esfera.pos = vector(100,100,0)
+        particula.vel = vector(0,0,0)
+        particulas.remove(particula)
+        numParticulas -= 1
+        del particula
+        
+    # Atualiza id das partículas
+    for num in range(numParticulas):
+        particulas[num].id = num
+        
+    particulasMortas = []
+
 
 def criarCaixa():
     '''
@@ -90,6 +176,7 @@ def criarParticulas():
             [randint(0, maxVel) for _ in range(2)],
             raio,
             massa,
+            'A',
             num,
             vermelho,
             pointer,
@@ -140,6 +227,7 @@ def loopAnimacao(histograma):
     histData = histogram(histTemp, binning, (0, maxVel))
     histVals = histData[0]/numParticulas
     histograma.data = list(zip(histData[1],histVals))
+    if particulasMortas != []: deletaParticulas()
 
     # Colisão (entre as partículas)
     for particula1, particula2 in combinations(particulas,2):
@@ -147,10 +235,7 @@ def loopAnimacao(histograma):
         distFutura = calcDist((particula1.esfera.pos + particula1.vel*dt),
                             ((particula1.esfera.pos + particula1.vel*dt)))
         if (distAtual <= (particula1.raio + particula2.raio)) and (distAtual > distFutura):
-            v1_atualizada, v2_atualizada = colisao(particula1, particula2)
-            id1, id2 = particula1.id, particula2.id
-            particulas[id1].vel = v1_atualizada
-            particulas[id2].vel = v2_atualizada
+            reacao(particula1, particula2)
             
     # Colisões (parede imaginária de lado L)
     for i in range(numParticulas):
@@ -182,13 +267,14 @@ class Particula:
     '''
     Classe utilizada para representar cada átomo como uma esfera dura.
     '''
-    def __init__(self, r, vr, raio, massa, id, cor, pointer):
+    def __init__(self, r, vr, raio, massa, tipo, id, cor, pointer):
         x, y = r
         vx, vy = vr
         self.pos = vector(x, y, 0)
         self.vel = vector(vx, vy, 0)
         self.raio = raio
         self.massa = massa
+        self.tipo = tipo
         self.id = id
         self.cor = cor
         self.esfera = sphere(pos=self.pos, radius=self.raio, color=self.cor)
@@ -211,9 +297,13 @@ d = L/2 + espessuraCaixa
 numParticulas = 25
 pointer = False
 particulas = []
+particulasMortas = []
+
+probReacao = 10
 
 azul = color.blue
 vermelho = color.red
+branco = color.white
 
 dt = 1e-3
 dv = 4
