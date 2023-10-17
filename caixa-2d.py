@@ -139,7 +139,7 @@ def deletaParticulas():
     deleta todas as particulas mortas
 
     Args:
-        particulasMortas (_type_): _description_
+        particulasMortas (list): lista de partículas a serem deletadas
     '''
     global particulasMortas, numParticulas
     
@@ -189,7 +189,7 @@ def criarParticulas():
 
 def criarHistograma():
     '''
-    Cria um histograma com as velocidades das patículas, juntamente da curva de
+    Cria um histograma com as velocidades das partículas, juntamente da curva de
     distribuição de Maxwell-Boltzmann.
 
     Args:
@@ -210,10 +210,20 @@ def criarHistograma():
         maxboltz.plot(vx, vy)
     return vDist
 
+
 def graficozinho(t,conc1,conc2,graph1,graph2):
+    '''
+    Cria um gráfico com as concentrações de cada tipo de molácula.
+
+    Args:
+        t (int): tempo da progressão da simulação
+        conc1: concentração do primeiro tipo de partícula
+        conc2: concentração do segundo tipo de partícula
+    '''
     global numParticulas
     graph1.plot(t,conc1/numParticulas)
     graph2.plot(t,conc2/numParticulas)
+
 
 def loopAnimacao(histograma, conc1, conc2, t):
     '''
@@ -296,7 +306,7 @@ class Particula:
         self.tipo = tipo
         self.id = id
         self.cor = cor
-        self.esfera = sphere(pos=self.pos, radius=self.raio, color=self.cor)
+        self.esfera = simple_sphere(pos=self.pos, radius=self.raio, color=self.cor)
         if pointer: self.pointer = arrow(pos=self.esfera.pos, axis=self.vel, length=.75, round=True)
 
 
