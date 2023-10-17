@@ -3,7 +3,7 @@
 from vpython import *
 from random import randrange, randint
 from itertools import combinations
-from numpy import histogram
+from numpy import histogram, savetxt
 
 # -------------------- Funções:
 
@@ -111,7 +111,7 @@ def reacao(particula1, particula2):
         particula1 (Particula): representa uma das partículas na colisão
         particula2 (Particula): representa a outra particula
     '''
-    global numParticulas, particulas, nR, nW
+    global numParticulas, particulas, nR, nP
     
     tipo1, tipo2 = particula1.tipo, particula2.tipo
     if (randint(0,100) <= probReacao) and (tipo1 == tipo2 == 'A'):
@@ -125,7 +125,7 @@ def reacao(particula1, particula2):
         particulasMortas.append(particula2)
 
         nR -= 2
-        nW += 1
+        nP += 1
 
     else:
         v1_atualizada, v2_atualizada = colisaoElastica(particula1, particula2)
@@ -223,19 +223,27 @@ def graficozinho(t,conc1,conc2,graph1,graph2):
     global numParticulas
     graph1.plot(t,conc1/numParticulas)
     graph2.plot(t,conc2/numParticulas)
+    
+
+def exportarDados():
+    listaDeListas = [i for i in zip(listaT, listaR, listaP)]
+    savetxt("dadosConcentracao.csv",
+        listaDeListas,
+        delimiter =", ",
+        fmt ='% s')
 
 
 def loopAnimacao(histograma, conc1, conc2, t):
     '''
     Função de loop para os aspectos visuais da simulação.
     '''
-    global nR, nW
+    global nR, nP
 
     rate(300)
     histTemp = []
     
     # Foi o Jambas
-    graficozinho(t, nR, nW, conc1, conc2)
+    graficozinho(t, nR, nP, conc1, conc2)
 
     # Update (partículas, pointers e histograma)
     for num in range(numParticulas):
@@ -285,9 +293,14 @@ def simulacao():
     conc2 = gcurve(color = color.purple, size = 6, label = 'Cocentração 2')
     t = 0
 
-    while True:
+    #while True:
+    while nR!=0:
         loopAnimacao(histograma, conc1, conc2, t)
         t += 1
+        listaT.append(t)
+        listaR.append(nR)
+        listaP.append(nP)
+    exportarDados()
 
 
 # -------------------- Classe das partícula:
@@ -344,8 +357,13 @@ animation = canvas(width=janelaW, height=janelaH, align='left')
 animation.range = L
 
 # Concentração
-nW = 0
+nP = 0
 nR = numParticulas
+
+# Dados
+listaT = [0]
+listaR = [nR]
+listaP = [nP]
 
 # -------------------- Simulação:
 
