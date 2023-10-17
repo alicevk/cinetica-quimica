@@ -111,7 +111,7 @@ def reacao(particula1, particula2):
         particula1 (Particula): representa uma das partículas na colisão
         particula2 (Particula): representa a outra particula
     '''
-    global numParticulas, particulas
+    global numParticulas, particulas, nR, nW
     
     tipo1, tipo2 = particula1.tipo, particula2.tipo
     if (randint(0,100) <= probReacao) and (tipo1 == tipo2 == 'A'):
@@ -119,10 +119,13 @@ def reacao(particula1, particula2):
         v_atualizada, r_atualizada = colisaoInelastica(particula1, particula2, massaNova)
         id = particula1.id
         particulas[id].vel, particulas[id].pos = v_atualizada, r_atualizada
-        particulas[id].cor = particulas[id].esfera.color = branco
+        particulas[id].cor = particulas[id].esfera.color = roxo
         particulas[id].tipo = 'B'
 
         particulasMortas.append(particula2)
+
+        nR -= 2
+        nW += 1
 
     else:
         v1_atualizada, v2_atualizada = colisaoElastica(particula1, particula2)
@@ -207,14 +210,23 @@ def criarHistograma():
         maxboltz.plot(vx, vy)
     return vDist
 
+def graficozinho(t,conc1,conc2,graph1,graph2):
+    global numParticulas
+    graph1.plot(t,conc1/numParticulas)
+    graph2.plot(t,conc2/numParticulas)
 
-def loopAnimacao(histograma):
+def loopAnimacao(histograma, conc1, conc2, t):
     '''
     Função de loop para os aspectos visuais da simulação.
     '''
+    global nR, nW
+
     rate(300)
     histTemp = []
     
+    # Foi o Jambas
+    graficozinho(t, nR, nW, conc1, conc2)
+
     # Update (partículas, pointers e histograma)
     for num in range(numParticulas):
         particulas[num].esfera.pos += particulas[num].vel*dt
@@ -257,8 +269,15 @@ def simulacao():
     criarCaixa()
     criarParticulas()
     histograma = criarHistograma()
+
+    concentracao = graph(title='Concentração Reagente x Produto', xtitle = 'Tempo', ytitle = 'Concentração', fast=False, align='left')
+    conc1 = gcurve(color = color.red, size = 6, label = 'Cocentração 1')
+    conc2 = gcurve(color = color.purple, size = 6, label = 'Cocentração 2')
+    t = 0
+
     while True:
-        loopAnimacao(histograma)
+        loopAnimacao(histograma, conc1, conc2, t)
+        t += 1
 
 
 # -------------------- Classe das partícula:
@@ -290,11 +309,11 @@ histogramaW = janelaW/2
 histogramaH = janelaH/3
 
 # Configurações da simulação
-L = 10
+L = 20
 espessuraCaixa = L/200
 d = L/2 + espessuraCaixa
 
-numParticulas = 25
+numParticulas = 100
 pointer = False
 particulas = []
 particulasMortas = []
@@ -303,7 +322,7 @@ probReacao = 10
 
 azul = color.blue
 vermelho = color.red
-branco = color.white
+roxo = color.purple
 
 dt = 1e-3
 dv = 4
@@ -313,6 +332,10 @@ k = 1.38e-23
 T = 24
 animation = canvas(width=janelaW, height=janelaH, align='left')
 animation.range = L
+
+# Concentração
+nW = 0
+nR = numParticulas
 
 # -------------------- Simulação:
 
