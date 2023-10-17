@@ -341,7 +341,7 @@ pointer = False
 particulas = []
 particulasMortas = []
 
-probReacao = 10
+probReacao = 40
 
 azul = color.blue
 vermelho = color.red
