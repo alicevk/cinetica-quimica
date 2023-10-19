@@ -20,15 +20,20 @@ Neste repositório, você encontrará:
 - Exemplos de aplicação e scripts de uso.
 - Documentação e recursos adicionais para entender os conceitos por trás das simulações.
 
-Neste repositório, ficaram depositadas os scripts (.py) referentes às atividades da matéria de Cinética Química, no Bacharelado de Ciência e Tecnologia da Ilum - Escola de Ciência, ministrada pelo professor Amauri Jardim de Paula. Nesta, buscamos simular os mecanismos que fazem ocorrer uma reação química, além de entender seus princípios físicos. 
+Neste repositório, ficaram depositadas os scripts (`.py`) e notebooks (`.ipynb`) referentes às atividades da matéria de Cinética Química, no Bacharelado de Ciência e Tecnologia da Ilum - Escola de Ciência, ministrada pelo professor Amauri Jardim de Paula. Nesta, buscamos simular os mecanismos que fazem ocorrer uma reação química, além de entender seus princípios físicos. 
 
-Num primeiro momento, foram feitas simulações em 2D e 3D, partindo de moléculas de mesma massa e tamanho, para entendermos a física das colisões entre partículas. Entendido isso, será escolhida uma reação para que os discentes possam trabalhar, buscando a simulação de uma reação real.
+Num primeiro momento, foram feitas simulações em 2D, partindo de moléculas de mesma massa e tamanho, para entendermos a física das colisões entre partículas. Entendido isso, será escolhida uma reação para que os discentes possam trabalhar, buscando a simulação de uma reação real.
+
+Como continuação, foi implementada uma simulação de reação simples do tipo $A + A \rightarrow B$, acompanhada de um gráfico de concentração das moléculas (reagentes e produtos).
 
 ## Requisitos
 
 Antes de começar, certifique-se de ter as seguintes ferramentas instaladas:
 
-<a href="https://www.python.org/"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original-wordmark.svg" width="40" height="40"/>
+|   |   |
+| - | - |
+| <a href="https://www.python.org/"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original-wordmark.svg" width="40" height="40"></a> | <a href="https://www.python.org/"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/jupyter/jupyter-original-wordmark.svg" width="40" height="40"></a> |
+|
 
 assim como as seguintes bibliotecas/módulos:
 
@@ -36,6 +41,13 @@ assim como as seguintes bibliotecas/módulos:
 - [NumPy](https://numpy.org/)
 - [Itertools](https://docs.python.org/3/library/itertools.html)
 - [Random](https://docs.python.org/3/library/random.html)
+
+para a simulação em [`simulacao.py`](simulacao.py), além de:
+
+- [Pandas](https://pandas.pydata.org)
+- [SciPy](https://scipy.org)
+
+para a análise dos gráficos em [`graficos.ipynb`](graficos.ipynb).
 
 Você pode instalar as dependências usando o gerenciador de pacotes [pip](https://pip.pypa.io/en/stable/):
 
