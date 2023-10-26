@@ -294,7 +294,7 @@ def simulacao():
     t = 0
 
     #while True:
-    while nR!=0:
+    while (nR!=0) and (t<15000):
         loopAnimacao(histograma, conc1, conc2, t)
         t += 1
         listaT.append(t)
@@ -336,7 +336,7 @@ L = 20
 espessuraCaixa = L/200
 d = L/2 + espessuraCaixa
 
-numParticulas = 100
+numParticulas = 200
 pointer = False
 particulas = []
 particulasMortas = []
