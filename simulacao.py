@@ -227,7 +227,7 @@ def graficozinho(t,conc1,conc2,graph1,graph2):
 
 def exportarDados():
     listaDeListas = [i for i in zip(listaT, listaR, listaP)]
-    savetxt("dadosConcentracao.csv",
+    savetxt(f"dadosNum={numParticulas}.csv",
         listaDeListas,
         delimiter =", ",
         fmt ='% s')
