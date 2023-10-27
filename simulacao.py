@@ -221,13 +221,13 @@ def graficozinho(t,conc1,conc2,graph1,graph2):
         conc2: concentração do segundo tipo de partícula
     '''
     global numParticulas
-    graph1.plot(t,conc1/numParticulas)
-    graph2.plot(t,conc2/numParticulas)
+    graph1.plot(t,conc1)
+    graph2.plot(t,conc2)
     
 
 def exportarDados():
     listaDeListas = [i for i in zip(listaT, listaR, listaP)]
-    savetxt(f"dadosNum={numParticulas}.csv",
+    savetxt(f"dados/dadosNum={numInicial}.csv",
         listaDeListas,
         delimiter =", ",
         fmt ='% s')
@@ -288,9 +288,9 @@ def simulacao():
     criarParticulas()
     histograma = criarHistograma()
 
-    concentracao = graph(title='Concentração Reagente x Produto', xtitle = 'Tempo', ytitle = 'Concentração', fast=False, align='left')
-    conc1 = gcurve(color = color.red, size = 6, label = 'Cocentração 1')
-    conc2 = gcurve(color = color.purple, size = 6, label = 'Cocentração 2')
+    concentracao = graph(title='Concentração Reagente x Produto', xtitle = 'Tempo (Frames)', ytitle = 'Número de partículas', fast=False, align='left')
+    conc1 = gcurve(color = color.red, size = 6, label = 'Reagente')
+    conc2 = gcurve(color = color.purple, size = 6, label = 'Produto')
     t = 0
 
     #while True:
@@ -336,12 +336,13 @@ L = 20
 espessuraCaixa = L/200
 d = L/2 + espessuraCaixa
 
-numParticulas = 200
+numInicial = 200
+numParticulas = numInicial
 pointer = False
 particulas = []
 particulasMortas = []
 
-probReacao = 40
+probReacao = 10
 
 azul = color.blue
 vermelho = color.red
