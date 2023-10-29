@@ -122,6 +122,12 @@ def colisao(p1:Particula, p2:Particula):
     
     
 def atualizaVizinhos(p:Particula):
+    '''
+    Atualiza a lista de partículas vizinhas a uma partícula.
+
+    Args:
+        p (Particula): particula a ter seus vizinhos recalculados
+    '''
     global pAtivas
     
     p.vizinhos.clear()
