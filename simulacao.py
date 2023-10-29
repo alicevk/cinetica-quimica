@@ -1,15 +1,42 @@
-# -------------------- Importações:
+# ---------------------------------------------------------------------------- #
+#                                  Importações                                 #
+# ---------------------------------------------------------------------------- #
 
 from vpython import *
-from random import randrange, randint
-from itertools import combinations
-from numpy import histogram, savetxt
+from random import randint, randrange
+from numpy import array, unique, savetxt
 
-# -------------------- Funções:
 
-def calcDist(r1, r2):
+# ---------------------------------------------------------------------------- #
+#                                    Classes                                   #
+# ---------------------------------------------------------------------------- #
+
+class Particula(simple_sphere):
     '''
-    Calcula a distância euclidiana bidimensional entre os vetores posição r1 e r2.
+    Classe utilizada para representar cada átomo como uma esfera.
+    (Hard spheres model)
+    '''
+    def __init__(self, id:int, pos:vector, vel:vector, raio:float, massa:float,
+                tipo:str, cor:vector):
+        super().__init__(pos=pos, radius=raio, color=cor)
+        self.color = cor
+        self.id = id
+        self.vel = vel
+        self.massa = massa
+        self.tipo = tipo
+        self.vizinhos = []
+
+
+# ---------------------------------------------------------------------------- #
+#                                    Funções                                   #
+# ---------------------------------------------------------------------------- #
+
+# --------------------------------- Dinâmica --------------------------------- #
+
+def dist(r1:vector, r2:vector):
+    '''
+    Calcula a distância euclidiana bidimensional entre os vetores posição r1 e
+    r2.
 
     Args:
         r1 (vpython vector): vetor posição (x1, y1, 0) da partícula 1
@@ -21,351 +48,379 @@ def calcDist(r1, r2):
     return mag(r1-r2)
 
 
-def calcCentroMassa(particula1, particula2):
-    r1 = particula1.esfera.pos
-    r2 = particula2.esfera.pos
-    m1 = particula1.massa
-    m2 = particula2.massa
-
-    return (r1*m1 + r2*m2)/m1 + m2
-
-
-def calcMassa(particulas):
+def colElastica(p1:Particula, p2:Particula):
     '''
-    Calcula a massa média das partículas no sistema.
+    Calcula e atualiza os vetores velocidade resultantes de cada partícula após
+    sua colisão, considerando uma colisão elástica.
 
     Args:
-        particulas (list): Lista dos objetos 'Partículas'; as partículas do sistema
+        p1 (Particula): representa uma das partículas na colisão
+        p2 (Particula): representa a outra partícula
+'''
+    v1, m1, x1 = p1.vel, p1.massa, p1.pos
+    v2, m2, x2 = p2.vel, p2.massa, p2.pos
+    v1_ = v1 - ((2*m2)/(m1+m2))*(dot(v1-v2, x1-x2)/(mag2(x1-x2)))*(x1-x2)
+    v2_ = v2 - ((2*m1)/(m1+m2))*(dot(v2-v1, x2-x1)/(mag2(x2-x1)))*(x2-x1)
+    print(f'\nColisão entre as partículas {p1.id} e {p2.id}!')
+    p1.vel, p2.vel = v1_, v2_
 
-    Returns:
-        (float): massa média das partículas
+
+def colInelastica(p1:Particula, p2:Particula):
     '''
-    massas = [part.massa for part in particulas]
-    return sum(massas)/len(massas)
-
-
-def colisaoElastica(particula1, particula2):
-    '''
-    Calcula os vetores resultantes de cada partícula após sua colisão.
+    Calcula e atualiza os vetores velocidade resultantes da partícula após a
+    colisão, considerando uma reação e colisão inelástica.
 
     Args:
-        particula1 (Particula): representa uma das partículas na colisão
-        particula2 (Particula): representa a outra particula
-        
-    Returns:
-        v1_atualizada (vpython vector): vetor velocidade atualizado para a partícula 1
-        v2_atualizada (vpython vector): vetor velocidade atualizado para a partícula 2
+        p1 (Particula): representa uma das partículas na colisão
+        p2 (Particula): representa a outra partícula
     '''
-    v1 = particula1.vel
-    v2 = particula2.vel
-    m1 = particula1.massa
-    m2 = particula2.massa
-    x1 = particula1.esfera.pos
-    x2 = particula2.esfera.pos
-    v1_atualizada = v1 - ((2*m2)/(m1+m2))*(dot(v1-v2, x1-x2)/(mag2(x1-x2)))*(x1-x2)
-    v2_atualizada = v2 - ((2*m1)/(m1+m2))*(dot(v2-v1, x2-x1)/(mag2(x2-x1)))*(x2-x1)
-    print(f"Houve uma colisão entre as partículas {particula1.id} e {particula2.id}!")
-    return v1_atualizada, v2_atualizada
+    v1, m1, x1 = p1.vel, p1.massa, p1.pos
+    v2, m2, x2 = p2.vel, p2.massa, p2.pos
+    m_ = (m1+m2)/2
+    v_ = (m1*v1+m2*v2)/m_
+    x_ = (x1+x2)/2
+    print(f'\nColisão entre as partículas {p1.id} e {p2.id}!')
+    p1.vel, p1.pos = v_, x_
 
 
-def colisaoInelastica(particula1, particula2, massaFinal):
+def reacao(p1:Particula, p2:Particula):
     '''
-    Calcula o vetor resultante de uma partícula após uma reação.
+    Realiza a reação A + A --> B entre as partículas p1 e p2.
 
     Args:
-        particula1 (Particula): representa uma das partículas na colisão
-        particula2 (Particula): representa a outra particula
-        
-    Returns:
-        v_atualizada (vpython vector): vetor velocidade atualizado para a partícula final
+        p1 (Particula): representa uma das partículas na reação
+        p2 (Particula): representa a outra particula
     '''
-    v1 = particula1.vel
-    v2 = particula2.vel
-    m1 = particula1.massa
-    m2 = particula2.massa
-    r1 = particula1.esfera.pos
-    r2 = particula2.esfera.pos
-    v_atualizada = (m1*v1 + m2*v2) / massaFinal
-    r_atualizada = (r1+r2)/2
-    print(f"Houve uma reação entre as partículas {particula1.id} e {particula2.id}!")
-    return v_atualizada, r_atualizada
-
-
-def maxwellBoltzmann(v, massaMedia):
-    '''
-    Função para plotagem da distribuição de Maxwell Boltzmann.
-    '''
-    alpha = (dv**2/binning) * numParticulas
-    first = (massaMedia / (2*pi*k*T))**1.5
-    second = exp(-.5*massaMedia*v**2 / (k*T))*v**2
-
-    return (alpha * first * second) / numParticulas
-
-
-def reacao(particula1, particula2):
-    '''
-    Chamada quando ocorre uma colisão entre duas partículas. Chama uma colisão elástica
-    ou inelástica dependendo da probabilidade de reação.
-
-    Args:
-        particula1 (Particula): representa uma das partículas na colisão
-        particula2 (Particula): representa a outra particula
-    '''
-    global numParticulas, particulas, nR, nP
+    global propProduto, pInativas, nReag, nProd
     
-    tipo1, tipo2 = particula1.tipo, particula2.tipo
-    if (randint(0,100) <= probReacao) and (tipo1 == tipo2 == 'A'):
-        massaNova = calcMassa([particula1, particula2])
-        v_atualizada, r_atualizada = colisaoInelastica(particula1, particula2, massaNova)
-        id = particula1.id
-        particulas[id].vel, particulas[id].pos = v_atualizada, r_atualizada
-        particulas[id].cor = particulas[id].esfera.color = roxo
-        particulas[id].tipo = 'B'
+    colInelastica(p1, p2)
+    p1.radius = propProduto['raio']
+    p1.massa = propProduto['massa']
+    p1.tipo = propProduto['tipo']
+    p1.color = propProduto['cor']
+    pInativas.append(p2)
+    nReag -= 2
+    nProd += 1
 
-        particulasMortas.append(particula2)
 
-        nR -= 2
-        nP += 1
-
-    else:
-        v1_atualizada, v2_atualizada = colisaoElastica(particula1, particula2)
-        id1, id2 = particula1.id, particula2.id
-        particulas[id1].vel = v1_atualizada
-        particulas[id2].vel = v2_atualizada
-        
-
-def deletaParticulas():
+def colisao(p1:Particula, p2:Particula):
     '''
-    deleta todas as particulas mortas
+    Chama uma colisão elástica ou inelástica dependendo da probabilidade de
+    reação.
 
     Args:
-        particulasMortas (list): lista de partículas a serem deletadas
+        p1 (Particula): representa uma das partículas na colisão
+        p2 (Particula): representa a outra particula
     '''
-    global particulasMortas, numParticulas
+    global probReacao
     
-    # Apaga as partículas
-    for particula in particulasMortas:
-        particula.esfera.visible = False
-        particula.pos = particula.esfera.pos = vector(100,100,0)
-        particula.vel = vector(0,0,0)
-        particulas.remove(particula)
-        numParticulas -= 1
-        del particula
-        
-    # Atualiza id das partículas
-    for num in range(numParticulas):
-        particulas[num].id = num
-        
-    particulasMortas = []
+    t1, t2 = p1.tipo, p2.tipo
+    condReacao = randint(0, 100) <= probReacao
+    condTipo = (t1 == t2 == 'A')
+    if condReacao and condTipo: reacao(p1, p2)
+    else: colElastica(p1, p2)
+    
+    
+def atualizaVizinhos(p:Particula):
+    global pAtivas
+    
+    p.vizinhos.clear()
+    x, r = p.pos, p.radius
+    for p2 in pAtivas:
+        x2 = p2.pos
+        if (dist(x, x2) <= r+2.5) and (p != p2): p.vizinhos.append(p2)
+    
+    
+def atualizaPos(p:Particula):
+    '''
+    Atualiza a posição de uma partícula.
+    '''
+    global dt
+
+    p.pos += p.vel*dt
+    
+    
+def colCheckPartPart(p1:Particula, p2:Particula):
+    '''
+    Checa colisão entre duas partículas.
+
+    Args:
+        p1 (Particula): representa uma das partículas na colisão
+        p2 (Particula): representa a outra partícula
+    '''
+    global dt
+    
+    x1, v1, r1 = p1.pos, p1.vel, p1.radius
+    x2, v2, r2 = p2.pos, p2.vel, p2.radius
+    distMinima = r1+r2
+    distancia = dist(x1, x2)
+    distancia_ = dist(x1+(v1*dt), x2+(v2*dt))
+    if (distancia <= distMinima) and (distancia > distancia_):
+        colisao(p1, p2)
 
 
-def criarCaixa():
+def colCheckPartParede(p:Particula):
     '''
-    Cria representação das arestas da caixa imaginária para conter a simulação de colisão.
+    Checa colisão entre uma partícula e as paredes da caixa.
+
+    Args:
+        p (Particula): partícula a ser examinada
     '''
-    caixa = curve(color=azul, radius=espessuraCaixa)
-    caixa.append([vector(-d,-d,0), vector(-d,d,0), vector(d,d,0), vector(d,-d,0), vector(-d,-d,0)])
+    global dt, ladoCaixa
+    
+    r = p.radius
+    pos = p.pos
+    pos_  = p.pos+(p.vel*dt)
+    if (abs(pos.x) >= (ladoCaixa/2-r)) and (abs(pos.x) < abs(pos_.x)):
+        p.vel.x = -p.vel.x
+    if (abs(pos.y) >= (ladoCaixa/2-r)) and (abs(pos.y) < abs(pos_.y)):
+        p.vel.y = -p.vel.y
+    
+    
+# ---------------------------------- Visual ---------------------------------- #
+
+def criaCaixa():
+    '''
+    Cria representação das arestas da caixa imaginária para conter a simulação.
+    '''
+    global ladoCaixa
+    
+    d = ladoCaixa/2 + 1e-2
+    caixa = curve(color=vector(1,1,1), radius=1e-2)
+    caixa.append([vector(-d,-d,0), vector(-d,d,0), vector(d,d,0),
+                  vector(d,-d,0), vector(-d,-d,0)])
 
 
-def criarParticulas():
+def criaParticulas():
     '''
-    Cria um número de instâncias da classe Partícula em uma lista.
+    Cria instâncias da classe Partícula ma lista de partículas ativas.
     '''
-    raio = 0.1
-    massa = 4e-23
-    for num in range(numParticulas):
-        particula = Particula(
-            [randrange(-L / 2 + 1, L / 2 - 1) for _ in range(2)],
-            [randint(0, maxVel) for _ in range(2)],
-            raio,
-            massa,
-            'A',
-            num,
-            vermelho,
-            pointer,
+    global pInicial, ladoCaixa, velLimite, propReagente, pAtivas
+    
+    for num in range(pInicial):
+        pos = [randrange(-ladoCaixa/2+1, ladoCaixa/2-1) for _ in range (2)]
+        pos = vector(pos[0], pos[1], 0)
+        vel = [randint(0, velLimite) for _ in range(2)]
+        vel = vector(vel[0], vel[1], 0)
+        p = Particula(
+            num, pos, vel,
+            propReagente['raio'],
+            propReagente['massa'],
+            propReagente['tipo'],
+            propReagente['cor']
         )
-        particulas.append(particula)
-
-
-def criarHistograma():
+        pAtivas.append(p)
+        
+        
+def criaGraficos():
     '''
-    Cria um histograma com as velocidades das partículas, juntamente da curva de
-    distribuição de Maxwell-Boltzmann.
-
-    Args:
-        particulas (list): Lista dos objetos 'Partículas'; as partículas do sistema
+    Cria gráficos que acompanham a simulação.
     '''
-    histograma = graph(width=histogramaW, height=histogramaH, align='left', xmax=maxVel, ymax=1,
-                        xtitle='Velocidade (m/s)', ytitle = 'Densidade de Probabilidade')
-    histData = [mag(particulas[n].vel) for n in range(numParticulas)]
-    histData = histogram(histData, binning, (0,maxVel))
-    histVals = histData[0]/numParticulas
-    vDist = gvbars(color=color.red, delta=dv)
-    vDist.data = list(zip(histData[1], histVals))
+    global grafComp, grafAlt, velLimite, pAtivas, pInicial, listaConc
     
-    # Plotando a distribuição de Maxwell-Boltzmann
-    maxboltz = gcurve(color=color.blue, width=2)
-    for vx in arange(0,maxVel,0.1):
-        vy = maxwellBoltzmann(vx, calcMassa(particulas))
-        maxboltz.plot(vx, vy)
-    return vDist
-
-
-def graficozinho(t,conc1,conc2,graph1,graph2):
-    '''
-    Cria um gráfico com as concentrações de cada tipo de molácula.
-
-    Args:
-        t (int): tempo da progressão da simulação
-        conc1: concentração do primeiro tipo de partícula
-        conc2: concentração do segundo tipo de partícula
-    '''
-    global numParticulas
-    graph1.plot(t,conc1)
-    graph2.plot(t,conc2)
+    # Gráfico 1:
+    grafico1 = graph(title='Distribuição de velocidades', width=grafComp,
+                    height=grafAlt, align='left', xmax=velLimite, ymax=8,
+                    xtitle='Velocidade', ytitle='Número de partículas')
+    histData = array([int(mag(p.vel)) for p in pAtivas])
+    histX, histY = unique(histData, return_counts=True)
+    histograma = gvbars(data=list(zip(histX, histY)),
+                        color=vector(1,1,0))
+    graficos.append(histograma)
+    
+    # Gráfico 2:
+    grafico2 = graph(title='Concentração', width=grafComp,
+                    height=grafAlt, align='left', ymax=pInicial,
+                    xtitle='Tempo (Frames)', ytitle='Número de partículas')
+    concReag = gcurve(data=list(zip(listaConc[0], listaConc[1])),
+                    color=vector(1,0,0), label='Reagente')
+    concProd = gcurve(data=list(zip(listaConc[0], listaConc[2])),
+                    color=vector(0,0,1), label='Produto')
+    graficos.extend([concReag, concProd])
     
 
+def atualizaGraficos():
+    '''
+    Atualiza os gráficos que acompanham a simulação.
+
+    Args:
+        histograma (gvbars): curva do histograma de velocidade
+    '''
+    global pAtivas, graficos, listaConc
+    
+    # Gráfico 1:
+    histograma = graficos[0]
+    histData = array([int(mag(p.vel)) for p in pAtivas])
+    histX, histY = unique(histData, return_counts=True)
+    histograma.data = list(zip(histX, histY))
+    
+    # Gráfico 2:
+    concReag, concProd = graficos[1], graficos[2]
+    concReag.data = list(zip(listaConc[0], listaConc[1]))
+    concProd.data = list(zip(listaConc[0], listaConc[2]))
+    
+    
+# --------------------------------- Simulação -------------------------------- #
+
+def delParticula(p:Particula):
+    '''
+    Deleta partícula da simulação.
+
+    Args:
+        p (Particula): partícula a ser deletada
+    '''
+    global pAtivas
+    
+    p.visible = False
+    pAtivas.remove(p)
+    del p
+    
+    
 def exportarDados():
-    listaDeListas = [i for i in zip(listaT, listaR, listaP)]
-    savetxt(f"dados/dadosNum={numInicial}.csv",
-        listaDeListas,
-        delimiter =", ",
-        fmt ='% s')
-
-
-def loopAnimacao(histograma, conc1, conc2, t):
     '''
-    Função de loop para os aspectos visuais da simulação.
+    Exporta os dados do gráfico de concentração.
     '''
-    global nR, nP
-
-    rate(300)
-    histTemp = []
+    global listaConc, pInicial
     
-    # Foi o Jambas
-    graficozinho(t, nR, nP, conc1, conc2)
+    dados = [i for i in zip(listaConc[0],listaConc[1],listaConc[2])]
+    savetxt(f'dados/dadosNum={pInicial}.csv', dados, delimiter=', ',
+            fmt='% s')
+    
+    
+def pararSimulacao():
+    '''
+    Para a simulação e exporta os dados de concentração
+    '''
+    global parar
+    
+    parar = True
+    exportarDados()
+    
 
-    # Update (partículas, pointers e histograma)
-    for num in range(numParticulas):
-        particulas[num].esfera.pos += particulas[num].vel*dt
-        histTemp.append(mag(particulas[num].vel))
-        if pointer:
-            particulas[num].pointer.pos = particulas[num].esfera.pos
-            particulas[num].pointer.axis = particulas[num].vel
-            particulas[num].pointer.length = 0.75
-
-    histData = histogram(histTemp, binning, (0, maxVel))
-    histVals = histData[0]/numParticulas
-    histograma.data = list(zip(histData[1],histVals))
-    if particulasMortas != []: deletaParticulas()
-
-    # Colisão (entre as partículas)
-    for particula1, particula2 in combinations(particulas,2):
-        distAtual = calcDist(particula1.esfera.pos, particula2.esfera.pos)
-        distFutura = calcDist((particula1.esfera.pos + particula1.vel*dt),
-                            ((particula1.esfera.pos + particula1.vel*dt)))
-        if (distAtual <= (particula1.raio + particula2.raio)) and (distAtual > distFutura):
-            reacao(particula1, particula2)
-            
-    # Colisões (parede imaginária de lado L)
-    for i in range(numParticulas):
-        part = particulas[i]
-        posAtual = part.esfera.pos
-        posFutura = part.esfera.pos + part.vel*dt
-        
-        if (abs(posAtual.x) >= (L/2-part.raio)) and (abs(posAtual.x) < abs(posFutura.x)):
-            particulas[i].vel.x = -particulas[i].vel.x
-        
-        if (abs(posAtual.y) >= (L/2-part.raio)) and (abs(posAtual.y) < abs(posFutura.y)):
-            particulas[i].vel.y = -particulas[i].vel.y
+def step():
+    '''
+    Passo da simulação:
+        * Deleta todas as partículas inativas;
+        * Reseta a lista de particulas inativas;
+        * Atualiza gráficos;
+        * Atualiza vizinhos;
+        * Atualiza posições das partículas;
+        * Check de colisão partícula-partícula;
+        * Check de colisão partícula-parede
+    '''
+    global pInativas, pAtivas
+    
+    # * Deleta todas as partículas inativas:
+    [delParticula(p) for p in pInativas]
+    # * Reseta a lista de particulas inativas
+    pInativas.clear()
+    # * Atualiza gráficos:
+    atualizaGraficos()
+    # * Atualiza posições das partículas:
+    for p in pAtivas:
+        atualizaPos(p)
+    # * Atualiza vizinhos:
+        atualizaVizinhos(p)
+    # * Check de colisão partícula-partícula:
+        for p2 in p.vizinhos:
+            colCheckPartPart(p, p2)
+    # * Check de colisão partícula-parede:
+        colCheckPartParede(p)
 
 
 def simulacao():
     '''
-    Função que roda a simulação.
+    Função responsável pela simulação completa.
     '''
-    criarCaixa()
-    criarParticulas()
-    histograma = criarHistograma()
-
-    concentracao = graph(title='Concentração Reagente x Produto', xtitle = 'Tempo (Frames)', ytitle = 'Número de partículas', fast=False, align='left')
-    conc1 = gcurve(color = color.red, size = 6, label = 'Reagente')
-    conc2 = gcurve(color = color.purple, size = 6, label = 'Produto')
+    global nReag, listaConc, nProd
+    
     t = 0
-
-    #while True:
-    while (nR!=0) and (t<20000):
-        loopAnimacao(histograma, conc1, conc2, t)
+    criaCaixa()
+    criaParticulas()
+    criaGraficos()
+    while (nReag!=0) and not parar:
+        step()
         t += 1
-        listaT.append(t)
-        listaR.append(nR)
-        listaP.append(nP)
-    exportarDados()
+        listaConc[0].append(t)
+        listaConc[1].append(nReag)
+        listaConc[2].append(nProd)
+    print('\nFim da simulação!')
 
 
-# -------------------- Classe das partícula:
 
-class Particula:
-    '''
-    Classe utilizada para representar cada átomo como uma esfera dura.
-    '''
-    def __init__(self, r, vr, raio, massa, tipo, id, cor, pointer):
-        x, y = r
-        vx, vy = vr
-        self.pos = vector(x, y, 0)
-        self.vel = vector(vx, vy, 0)
-        self.raio = raio
-        self.massa = massa
-        self.tipo = tipo
-        self.id = id
-        self.cor = cor
-        self.esfera = simple_sphere(pos=self.pos, radius=self.raio, color=self.cor)
-        if pointer: self.pointer = arrow(pos=self.esfera.pos, axis=self.vel, length=.75, round=True)
+################################################################################
 
 
-# -------------------- Parâmetros iniciais:
 
-# Configurações da janela
-janelaW = 800
-janelaH = 800
-histogramaW = janelaW/2
-histogramaH = janelaH/3
+# ---------------------------------------------------------------------------- #
+#                            Parâmetros da simulação                           #
+# ---------------------------------------------------------------------------- #
 
-# Configurações da simulação
-L = 24
-espessuraCaixa = L/200
-d = L/2 + espessuraCaixa
+dt = 1e-3 # Variação no tempo em cada frame
+velLimite = 40 # Limite de velocidade inicial para as partículas
 
-numInicial = 100
-numParticulas = numInicial
-pointer = False
-particulas = []
-particulasMortas = []
+probReacao = 40 # Probabilidade de reação (em %)
 
-probReacao = 40
+pInicial = 100 # Número de partículas inicial
+nReag = pInicial # Número de partículas de reagente
+nProd = 0 # Número de partículas de produto
 
-azul = color.blue
-vermelho = color.red
-roxo = color.purple
+pAtivas = [] # Lista de partículas ativas
+pInativas = [] # Lista de partículas inativas
 
-dt = 1e-3
-dv = 4
-maxVel = 40
-binning = maxVel // dv
+ladoCaixa = 20 # Lado da caixa imaginária contendo a simulação
+
+# Propriedades das partículas:
+propReagente = {
+    'raio':0.1,
+    'massa':4e-23,
+    'tipo':'A',
+    'cor':vector(1,0,0)
+}
+
+propProduto = {
+    'raio':0.12,
+    'massa':6e-23,
+    'tipo':'B',
+    'cor':vector(0,0,1)
+}
+
+# Gráfico de concentração:
+graficos = []
+listaTempo = [0]
+listaReag = [nReag]
+listaProd = [nProd]
+listaConc = [listaTempo, listaReag, listaProd]
+
+# Gráfico de Maxwell-Boltzamann:
 k = 1.38e-23
 T = 24
-animation = canvas(width=janelaW, height=janelaH, align='left')
-animation.range = L
 
-# Concentração
-nP = 0
-nR = numParticulas
 
-# Dados
-listaT = [0]
-listaR = [nR]
-listaP = [nP]
+# ---------------------------------------------------------------------------- #
+#                                 Setup VPython                                #
+# ---------------------------------------------------------------------------- #
 
-# -------------------- Simulação:
+# Configurações da janela:
+ladoJanela = 800
+grafComp = ladoJanela/2
+grafAlt = ladoJanela/3
+
+# Criando a animação:
+animacao = canvas(width=ladoJanela, height=ladoJanela, align='left')
+animacao.range = ladoCaixa
+animacao.camera.pos = vector(0,0,20)
+
+parar = False
+
+animacao.append_to_caption('\n\n\n                                            ')
+botaoParar = button(pos=animacao.caption_anchor, text='Parar simulação',
+                    bind=pararSimulacao, left=50)
+animacao.append_to_caption('\n\n\n\n')
+
+
+# ---------------------------------------------------------------------------- #
+#                                   Simulação                                  #
+# ---------------------------------------------------------------------------- #
 
 simulacao()
