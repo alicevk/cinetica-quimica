@@ -3,7 +3,8 @@
 # ---------------------------------------------------------------------------- #
 
 from vpython import *
-from random import randint, randrange
+from vpython.no_notebook import stop_server
+from random import random, randrange
 from numpy import array, unique, savetxt
 
 
@@ -17,7 +18,7 @@ class Particula(simple_sphere):
     (Hard spheres model)
     '''
     def __init__(self, id:int, pos:vector, vel:vector, raio:float, massa:float,
-                tipo:str, cor:vector):
+                tipo:str, cor:vector, probReac:int):
         super().__init__(pos=pos, radius=raio, color=cor)
         self.color = cor
         self.id = id
@@ -25,6 +26,9 @@ class Particula(simple_sphere):
         self.massa = massa
         self.tipo = tipo
         self.vizinhos = []
+        self.probReacao = probReac
+        self.modificadorPR = 0
+        
 
 
 # ---------------------------------------------------------------------------- #
@@ -98,7 +102,7 @@ def reacao(p1:Particula, p2:Particula):
     p1.massa = propProduto['massa']
     p1.tipo = propProduto['tipo']
     p1.color = propProduto['cor']
-    pInativas.append(p2)
+    if (p2 not in pInativas): pInativas.append(p2)
     nReag -= 2
     nProd += 1
 
@@ -112,10 +116,8 @@ def colisao(p1:Particula, p2:Particula):
         p1 (Particula): representa uma das partículas na colisão
         p2 (Particula): representa a outra particula
     '''
-    global probReacao
-    
-    t1, t2 = p1.tipo, p2.tipo
-    condReacao = randint(0, 100) <= probReacao
+    t1, t2, probReacao = p1.tipo, p2.tipo, max(p1.probReacao, p2.probReacao)
+    condReacao = random() <= probReacao
     condTipo = (t1 == t2 == 'A')
     if condReacao and condTipo: reacao(p1, p2)
     else: colElastica(p1, p2)
@@ -167,7 +169,9 @@ def colCheckPartPart(p1:Particula, p2:Particula):
 
 def colCheckPartParede(p:Particula):
     '''
-    Checa colisão entre uma partícula e as paredes da caixa.
+    Checa colisão entre uma partícula e as paredes da caixa. Aumenta modificador
+    de probabilidade de reação da partícula no caso de colisão (ação
+    catalizadora).
 
     Args:
         p (Particula): partícula a ser examinada
@@ -179,8 +183,46 @@ def colCheckPartParede(p:Particula):
     pos_  = p.pos+(p.vel*dt)
     if (abs(pos.x) >= (ladoCaixa/2-r)) and (abs(pos.x) < abs(pos_.x)):
         p.vel.x = -p.vel.x
+        p.modificadorPR=40
     if (abs(pos.y) >= (ladoCaixa/2-r)) and (abs(pos.y) < abs(pos_.y)):
         p.vel.y = -p.vel.y
+        p.modificadorPR=40
+    
+    
+def atualizaVelMedia(p:Particula):
+    '''
+    Atualiza a velocidade média de uma partícula e adiciona esse valor à
+    variável de média global.
+
+    Args:
+        p (Particula): partícula a ter sua velocidade calculada
+    '''
+    global mVelMediaQuad
+    
+    m, v = p.massa, p.vel
+    mVelMediaQuad += m*mag2(v)
+    
+    
+def atualizaTemp():
+    '''
+    Atualiza temperatura global do sistema em função da velocidade média
+    global.
+    '''
+    global temperatura
+    
+    temperatura = mVelMediaQuad/(3*kB)
+    
+    
+def atualizaProbReac(p:Particula):
+    '''
+    Atualiza probabilidade de reação em função da colisão com as paredes, os
+    agentes catalisadores do sistema.
+    
+    Args:
+        p (Particula): partícula a ter sua probabilidade de reação atualizada
+    '''
+    p.probReacao = propReagente['probReacao']*(1+p.modificadorPR)
+    if p.modificadorPR!=0: p.modificadorPR -= 1
     
     
 # ---------------------------------- Visual ---------------------------------- #
@@ -206,14 +248,15 @@ def criaParticulas():
     for num in range(pInicial):
         pos = [randrange(-ladoCaixa/2+1, ladoCaixa/2-1) for _ in range (2)]
         pos = vector(pos[0], pos[1], 0)
-        vel = [randint(0, velLimite) for _ in range(2)]
+        vel = [(random() * velLimite) for _ in range(2)]
         vel = vector(vel[0], vel[1], 0)
         p = Particula(
             num, pos, vel,
             propReagente['raio'],
             propReagente['massa'],
             propReagente['tipo'],
-            propReagente['cor']
+            propReagente['cor'],
+            propReagente['probReacao']
         )
         pAtivas.append(p)
         
@@ -222,7 +265,8 @@ def criaGraficos():
     '''
     Cria gráficos que acompanham a simulação.
     '''
-    global grafComp, grafAlt, velLimite, pAtivas, pInicial, listaConc
+    global grafComp, grafAlt, velLimite, pAtivas, pInicial, listaGrafCond,\
+    listaGrafTemp
     
     # Gráfico 1:
     grafico1 = graph(title='Distribuição de velocidades', width=grafComp,
@@ -238,21 +282,26 @@ def criaGraficos():
     grafico2 = graph(title='Concentração', width=grafComp,
                     height=grafAlt, align='left', ymax=pInicial,
                     xtitle='Tempo (Frames)', ytitle='Número de partículas')
-    concReag = gcurve(data=list(zip(listaConc[0], listaConc[1])),
+    concReag = gcurve(data=list(zip(listaGrafCond[0], listaGrafCond[1])),
                     color=vector(1,0,0), label='Reagente')
-    concProd = gcurve(data=list(zip(listaConc[0], listaConc[2])),
+    concProd = gcurve(data=list(zip(listaGrafCond[0], listaGrafCond[2])),
                     color=vector(0,0,1), label='Produto')
     graficos.extend([concReag, concProd])
+    
+    # Gráfico 3:
+    grafico3 = graph(title='Temperatura', width=grafComp,
+                    height=grafAlt, align='left',
+                    xtitle='Tempo (Frames)', ytitle='Temperatura do sistema')
+    tempSist = gcurve(data=list(zip(listaGrafTemp[0], listaGrafTemp[1])),
+                    color=vector(1,0,0))
+    graficos.extend([tempSist])
     
 
 def atualizaGraficos():
     '''
     Atualiza os gráficos que acompanham a simulação.
-
-    Args:
-        histograma (gvbars): curva do histograma de velocidade
     '''
-    global pAtivas, graficos, listaConc
+    global pAtivas, graficos, listaGrafCond, listaGrafTemp
     
     # Gráfico 1:
     histograma = graficos[0]
@@ -262,8 +311,27 @@ def atualizaGraficos():
     
     # Gráfico 2:
     concReag, concProd = graficos[1], graficos[2]
-    concReag.data = list(zip(listaConc[0], listaConc[1]))
-    concProd.data = list(zip(listaConc[0], listaConc[2]))
+    concReag.data = list(zip(listaGrafCond[0], listaGrafCond[1]))
+    concProd.data = list(zip(listaGrafCond[0], listaGrafCond[2]))
+    
+    # Gráfico 3:
+    tempSist = graficos[3]
+    tempSist.data = list(zip(listaGrafTemp[0], listaGrafTemp[1]))
+        
+
+def atualizaListas(t:int):
+    '''
+    Atualiza listas para a plotagem dos gráficos.
+
+    Args:
+        t (int): tempo (frame) atual da simulação
+    '''
+    global listaGrafCond
+    
+    listaGrafCond[0].append(t)
+    listaGrafCond[1].append(nReag)
+    listaGrafCond[2].append(nProd)
+    listaGrafTemp[1].append(temperatura)
     
     
 # --------------------------------- Simulação -------------------------------- #
@@ -286,9 +354,9 @@ def exportarDados():
     '''
     Exporta os dados do gráfico de concentração.
     '''
-    global listaConc, pInicial
+    global listaGrafCond, pInicial
     
-    dados = [i for i in zip(listaConc[0],listaConc[1],listaConc[2])]
+    dados = [i for i in zip(listaGrafCond[0],listaGrafCond[1],listaGrafCond[2])]
     savetxt(f'dados/dadosNum={pInicial}.csv', dados, delimiter=', ',
             fmt='% s')
     
@@ -311,10 +379,13 @@ def step():
         * Atualiza gráficos;
         * Atualiza vizinhos;
         * Atualiza posições das partículas;
+        * Atualiza probabilidade de reação;
+        * Atualiza mVelMediaQuad;
         * Check de colisão partícula-partícula;
-        * Check de colisão partícula-parede
+        * Check de colisão partícula-parede;
+        * Atualiza temperatura
     '''
-    global pInativas, pAtivas
+    global pInativas, pAtivas, mVelMediaQuad
     
     # * Deleta todas as partículas inativas:
     [delParticula(p) for p in pInativas]
@@ -325,6 +396,10 @@ def step():
     # * Atualiza posições das partículas:
     for p in pAtivas:
         atualizaPos(p)
+    # * Atualiza probabilidade de reação;
+        atualizaProbReac(p)
+    # * Atualiza mVelMediaQuad:
+        atualizaVelMedia(p)
     # * Atualiza vizinhos:
         atualizaVizinhos(p)
     # * Check de colisão partícula-partícula:
@@ -332,25 +407,27 @@ def step():
             colCheckPartPart(p, p2)
     # * Check de colisão partícula-parede:
         colCheckPartParede(p)
+    # * Atualiza temperatura:
+    mVelMediaQuad /= len(pAtivas)
+    atualizaTemp()
 
 
 def simulacao():
     '''
     Função responsável pela simulação completa.
     '''
-    global nReag, listaConc, nProd
+    global nReag, listaGrafCond, nProd
     
     t = 0
     criaCaixa()
     criaParticulas()
     criaGraficos()
-    while (nReag!=0) and not parar:
+    while (not parar):
         step()
         t += 1
-        listaConc[0].append(t)
-        listaConc[1].append(nReag)
-        listaConc[2].append(nProd)
+        atualizaListas(t)
     print('\nFim da simulação!')
+    stop_server()
 
 
 
@@ -364,31 +441,34 @@ def simulacao():
 
 dt = 1e-3 # Variação no tempo em cada frame
 velLimite = 40 # Limite de velocidade inicial para as partículas
+mVelMediaQuad = 0
+temperatura = 0
+kB = 1.380649*10**(-23)
 
-probReacao = 40 # Probabilidade de reação (em %)
-
-pInicial = 100 # Número de partículas inicial
+pInicial = 250 # Número de partículas inicial
 nReag = pInicial # Número de partículas de reagente
 nProd = 0 # Número de partículas de produto
 
 pAtivas = [] # Lista de partículas ativas
 pInativas = [] # Lista de partículas inativas
 
-ladoCaixa = 20 # Lado da caixa imaginária contendo a simulação
+ladoCaixa = 24 # Lado da caixa imaginária contendo a simulação
 
 # Propriedades das partículas:
 propReagente = {
     'raio':0.1,
     'massa':4e-23,
     'tipo':'A',
-    'cor':vector(1,0,0)
+    'cor':vector(1,0,0),
+    'probReacao':1
 }
 
 propProduto = {
     'raio':0.12,
     'massa':6e-23,
     'tipo':'B',
-    'cor':vector(0,0,1)
+    'cor':vector(0,0,1),
+    'probReacao':0
 }
 
 # Gráfico de concentração:
@@ -396,11 +476,11 @@ graficos = []
 listaTempo = [0]
 listaReag = [nReag]
 listaProd = [nProd]
-listaConc = [listaTempo, listaReag, listaProd]
+listaGrafCond = [listaTempo, listaReag, listaProd]
 
-# Gráfico de Maxwell-Boltzamann:
-k = 1.38e-23
-T = 24
+# Gráfico de temperatura:
+listaTemp = [temperatura]
+listaGrafTemp = [listaTempo, listaTemp]
 
 
 # ---------------------------------------------------------------------------- #
@@ -415,7 +495,7 @@ grafAlt = ladoJanela/3
 # Criando a animação:
 animacao = canvas(width=ladoJanela, height=ladoJanela, align='left')
 animacao.range = ladoCaixa
-animacao.camera.pos = vector(0,0,20)
+animacao.camera.pos = vector(0,0,ladoCaixa)
 
 parar = False
 
