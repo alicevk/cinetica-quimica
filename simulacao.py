@@ -18,7 +18,7 @@ class Particula(simple_sphere):
     (Hard spheres model)
     '''
     def __init__(self, id:int, pos:vector, vel:vector, raio:float, massa:float,
-                tipo:str, cor:vector, probReac:int):
+                tipo:str, cor:vector, probReac:float):
         super().__init__(pos=pos, radius=raio, color=cor)
         self.color = cor
         self.id = id
@@ -183,10 +183,10 @@ def colCheckPartParede(p:Particula):
     pos_  = p.pos+(p.vel*dt)
     if (abs(pos.x) >= (ladoCaixa/2-r)) and (abs(pos.x) < abs(pos_.x)):
         p.vel.x = -p.vel.x
-        p.modificadorPR=40
+        p.modificadorPR=60
     if (abs(pos.y) >= (ladoCaixa/2-r)) and (abs(pos.y) < abs(pos_.y)):
         p.vel.y = -p.vel.y
-        p.modificadorPR=40
+        p.modificadorPR=60
     
     
 def atualizaVelMedia(p:Particula):
@@ -265,7 +265,7 @@ def criaGraficos():
     '''
     Cria gráficos que acompanham a simulação.
     '''
-    global grafComp, grafAlt, velLimite, pAtivas, pInicial, listaGrafCond,\
+    global grafComp, grafAlt, velLimite, pAtivas, pInicial, listaGrafConc,\
     listaGrafTemp
     
     # Gráfico 1:
@@ -282,9 +282,9 @@ def criaGraficos():
     grafico2 = graph(title='Concentração', width=grafComp,
                     height=grafAlt, align='left', ymax=pInicial,
                     xtitle='Tempo (Frames)', ytitle='Número de partículas')
-    concReag = gcurve(data=list(zip(listaGrafCond[0], listaGrafCond[1])),
+    concReag = gcurve(data=list(zip(listaGrafConc[0], listaGrafConc[1])),
                     color=vector(1,0,0), label='Reagente')
-    concProd = gcurve(data=list(zip(listaGrafCond[0], listaGrafCond[2])),
+    concProd = gcurve(data=list(zip(listaGrafConc[0], listaGrafConc[2])),
                     color=vector(0,0,1), label='Produto')
     graficos.extend([concReag, concProd])
     
@@ -301,7 +301,7 @@ def atualizaGraficos():
     '''
     Atualiza os gráficos que acompanham a simulação.
     '''
-    global pAtivas, graficos, listaGrafCond, listaGrafTemp
+    global pAtivas, graficos, listaGrafConc, listaGrafTemp
     
     # Gráfico 1:
     histograma = graficos[0]
@@ -311,8 +311,8 @@ def atualizaGraficos():
     
     # Gráfico 2:
     concReag, concProd = graficos[1], graficos[2]
-    concReag.data = list(zip(listaGrafCond[0], listaGrafCond[1]))
-    concProd.data = list(zip(listaGrafCond[0], listaGrafCond[2]))
+    concReag.data = list(zip(listaGrafConc[0], listaGrafConc[1]))
+    concProd.data = list(zip(listaGrafConc[0], listaGrafConc[2]))
     
     # Gráfico 3:
     tempSist = graficos[3]
@@ -326,11 +326,11 @@ def atualizaListas(t:int):
     Args:
         t (int): tempo (frame) atual da simulação
     '''
-    global listaGrafCond
+    global listaGrafConc
     
-    listaGrafCond[0].append(t)
-    listaGrafCond[1].append(nReag)
-    listaGrafCond[2].append(nProd)
+    listaGrafConc[0].append(t)
+    listaGrafConc[1].append(nReag)
+    listaGrafConc[2].append(nProd)
     listaGrafTemp[1].append(temperatura)
     
     
@@ -354,10 +354,15 @@ def exportarDados():
     '''
     Exporta os dados do gráfico de concentração.
     '''
-    global listaGrafCond, pInicial
+    global listaGrafConc, pInicial
     
-    dados = [i for i in zip(listaGrafCond[0],listaGrafCond[1],listaGrafCond[2])]
-    savetxt(f'dados/dadosNum={pInicial}.csv', dados, delimiter=', ',
+    # dados de concentração
+    dadosC = [i for i in zip(listaGrafConc[0],listaGrafConc[1],listaGrafConc[2])]
+    savetxt(f'dados/Conc/C-Num={pInicial}.csv', dadosC, delimiter=', ',
+            fmt='% s')
+    # dados de temperatura
+    dadosT = [i for i in zip(listaGrafTemp[0], listaGrafTemp[1])]
+    savetxt(f'dados/Temp/T-Num={pInicial}.csv', dadosT, delimiter=', ',
             fmt='% s')
     
     
@@ -416,7 +421,7 @@ def simulacao():
     '''
     Função responsável pela simulação completa.
     '''
-    global nReag, listaGrafCond, nProd
+    global nReag, listaGrafConc, nProd
     
     t = 0
     criaCaixa()
@@ -445,14 +450,14 @@ mVelMediaQuad = 0
 temperatura = 0
 kB = 1.380649*10**(-23)
 
-pInicial = 250 # Número de partículas inicial
+pInicial = 150 # Número de partículas inicial
 nReag = pInicial # Número de partículas de reagente
 nProd = 0 # Número de partículas de produto
 
 pAtivas = [] # Lista de partículas ativas
 pInativas = [] # Lista de partículas inativas
 
-ladoCaixa = 24 # Lado da caixa imaginária contendo a simulação
+ladoCaixa = 20 # Lado da caixa imaginária contendo a simulação
 
 # Propriedades das partículas:
 propReagente = {
@@ -460,7 +465,7 @@ propReagente = {
     'massa':4e-23,
     'tipo':'A',
     'cor':vector(1,0,0),
-    'probReacao':1
+    'probReacao':.05
 }
 
 propProduto = {
@@ -476,7 +481,7 @@ graficos = []
 listaTempo = [0]
 listaReag = [nReag]
 listaProd = [nProd]
-listaGrafCond = [listaTempo, listaReag, listaProd]
+listaGrafConc = [listaTempo, listaReag, listaProd]
 
 # Gráfico de temperatura:
 listaTemp = [temperatura]
